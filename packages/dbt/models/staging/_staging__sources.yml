@@ -1,0 +1,8 @@
+version: 2
+
+sources:
+  - name: staging
+    schema: staging
+    tables:
+      - name: owntracks_location_inbox
+        description: Materialized OwnTracks location rows from Bronze

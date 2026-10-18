@@ -1,0 +1,9 @@
+version: 2
+
+models:
+  - name: stg_owntracks__location
+    columns:
+      - name: location_event_id
+        tests:
+          - not_null
+          - unique

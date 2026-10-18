@@ -1,0 +1,8 @@
+# Maps OwnTracks topic segments to hub_person business keys (non-secret).
+
+default_person_id: me
+
+# Optional: map the second segment of owntracks/<user>/<device> to person_id.
+# users:
+#   me: me
+#   partner: spouse

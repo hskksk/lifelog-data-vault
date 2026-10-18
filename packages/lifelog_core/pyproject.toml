@@ -3,7 +3,12 @@ name = "lifelog-core"
 version = "0.1.0"
 description = "Shared lifelog ingest utilities"
 requires-python = ">=3.12"
-dependencies = []
+dependencies = [
+  "boto3>=1.35",
+  "h3>=4.0",
+  "psycopg[binary]>=3.2",
+  "pyyaml>=6.0",
+]
 
 [build-system]
 requires = ["hatchling"]
