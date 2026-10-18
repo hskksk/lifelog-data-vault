@@ -12,3 +12,4 @@ packages/dbt/logs/
 packages/dbt/profiles.yml
 .DS_Store
 *.log
+packages/dbt/.user.yml
