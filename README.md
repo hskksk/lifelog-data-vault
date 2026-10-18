@@ -24,6 +24,20 @@ cd packages/dbt && dbt deps && dbt parse
 
 See [docs/architecture/overview.md](docs/architecture/overview.md) for monorepo layout and pipeline design.
 
+### OwnTracks (location)
+
+Design: [docs/architecture/owntracks.md](docs/architecture/owntracks.md).
+
+```bash
+make up && make migrate
+export BRONZE_LOCAL_DIR=var/bronze DATABASE_URL=postgresql://lifelog:lifelog@localhost:5432/lifelog
+uv sync --all-packages
+uv run lifelog-ingest serve owntracks --port 8080   # terminal 2
+make demo-owntracks                                  # POST sample location
+uv run lifelog-ingest materialize owntracks
+make dbt-owntracks
+```
+
 ## License
 
 MIT

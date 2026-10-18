@@ -12,7 +12,11 @@ members = ["packages/lifelog_core", "packages/ingest"]
 dev-dependencies = [
     "ruff>=0.8",
     "pytest>=8.0",
+    "httpx>=0.28",
 ]
+
+[tool.pytest.ini_options]
+testpaths = ["packages/lifelog_core/tests", "packages/ingest/lifelog_ingest/tests"]
 
 [tool.ruff]
 line-length = 100

@@ -1,0 +1,14 @@
+[Unit]
+Description=Cloudflare Tunnel for lifelog ingest
+After=network-online.target lifelog-owntracks-web.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=lifelog
+EnvironmentFile=/etc/lifelog/env
+ExecStart=/usr/local/bin/cloudflared tunnel run lifelog-ingest
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
