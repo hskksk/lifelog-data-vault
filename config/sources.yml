@@ -10,3 +10,9 @@ sources:
     lookback_days: 7
   apple_health:
     enabled: false
+  owntracks:
+    enabled: false
+    # Public URL path (behind Cloudflare Tunnel): POST /ingest/owntracks
+    http_path: /ingest/owntracks
+    h3_resolution: 9
+    materialize_interval_minutes: 15

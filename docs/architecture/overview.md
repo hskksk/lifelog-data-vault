@@ -1,6 +1,8 @@
 # Monorepo overview design
 
-See GitHub issue #1 for the canonical design discussion snapshot.
+See GitHub issue #4 for the canonical design discussion snapshot.
+
+Source-specific designs: [owntracks.md](./owntracks.md) (location / H3).
 
 ## Purpose
 
