@@ -1,0 +1,23 @@
+name: lifelog_vault
+version: 1.0.0
+config-version: 2
+profile: lifelog_vault
+
+model-paths: ["models"]
+macro-paths: ["macros"]
+test-paths: ["tests"]
+seed-paths: ["seeds"]
+
+models:
+  lifelog_vault:
+    staging:
+      +schema: staging
+    raw_vault:
+      +schema: raw_vault
+    business_vault:
+      +schema: business_vault
+    marts:
+      +schema: mart
+
+vars:
+  batch_id: null

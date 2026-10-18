@@ -1,0 +1,12 @@
+lifelog_vault:
+  target: local
+  outputs:
+    local:
+      type: postgres
+      host: localhost
+      user: lifelog
+      password: lifelog
+      port: 5432
+      dbname: lifelog
+      schema: staging
+      threads: 2

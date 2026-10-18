@@ -1,0 +1,12 @@
+# Non-secret source toggles and defaults (committed).
+
+sources:
+  manual:
+    enabled: true
+  activitywatch:
+    enabled: false
+  garmin:
+    enabled: false
+    lookback_days: 7
+  apple_health:
+    enabled: false
