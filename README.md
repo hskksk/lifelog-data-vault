@@ -2,6 +2,8 @@
 
 Personal lifelog data platform using **Data Vault 2.0** patterns: Bronze object storage, PostgreSQL Raw/Business Vault, dbt transforms, Python ingest on OCI (or local Docker).
 
+> **Repository name:** GitHub 上は暫定 [`hskksk/estimate_test_story`](https://github.com/hskksk/estimate_test_story) です。Settings → General → **Repository name** を `lifelog-data-vault` に変更してください（Issue・clone URL がそのまま引き継がれます）。
+
 ## Stack
 
 | Layer | Technology |
