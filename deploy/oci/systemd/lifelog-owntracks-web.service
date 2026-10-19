@@ -1,0 +1,15 @@
+[Unit]
+Description=Lifelog OwnTracks ingest webhook
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=lifelog
+WorkingDirectory=/opt/lifelog-data-vault
+EnvironmentFile=/etc/lifelog/env
+ExecStart=/usr/bin/node /opt/lifelog-data-vault/packages/ingest/dist/cli.js serve owntracks --host 127.0.0.1 --port 8080
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target

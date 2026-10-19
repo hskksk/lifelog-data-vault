@@ -1,0 +1,10 @@
+{
+  "name": "lifelog-data-vault",
+  "private": true,
+  "packageManager": "pnpm@9.14.0",
+  "scripts": {
+    "typecheck": "pnpm --filter @lifelog/ingest typecheck",
+    "test": "pnpm --filter @lifelog/ingest test",
+    "ingest": "pnpm --filter @lifelog/ingest exec lifelog-ingest"
+  }
+}

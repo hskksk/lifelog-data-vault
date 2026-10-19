@@ -5,6 +5,7 @@
 - `hub_person`
 - `hub_device`
 - `hub_observation_definition` (steps, heart_rate, sleep_session, weight, …)
+- `hub_location_h3`, `hub_location_event` — see [owntracks.md](./owntracks.md)
 
 ## Links
 

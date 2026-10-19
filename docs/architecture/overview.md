@@ -1,6 +1,8 @@
 # Monorepo overview design
 
-See GitHub issue #1 for the canonical design discussion snapshot.
+See GitHub issue #4 for the canonical design discussion snapshot.
+
+Source-specific designs: [owntracks.md](./owntracks.md) (location / H3).
 
 ## Purpose
 
@@ -26,8 +28,7 @@ GitHub → CI (parse, compile, tests); production dbt on OCI
 ## Repository layout
 
 ```
-packages/lifelog_core/   shared batch, R2, DB helpers
-packages/ingest/         source CLIs → Bronze
+packages/ingest/         TypeScript ingest (Hono webhook, materialize → Bronze)
 packages/dbt/            dbt project lifelog_vault
 deploy/docker/           local Postgres
 deploy/sql/migrations/   Hub/Link/Sat DDL
