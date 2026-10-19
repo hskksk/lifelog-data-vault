@@ -9,7 +9,7 @@ Personal lifelog data platform using **Data Vault 2.0** patterns: Bronze object 
 | Bronze | Cloudflare R2 (S3-compatible) |
 | Vault DB | PostgreSQL |
 | Transform | dbt Core |
-| Ingest | Python (`uv`), CLI per source |
+| Ingest | TypeScript (`pnpm`, `@lifelog/ingest`) |
 | Compute (prod) | OCI Always Free Ampere A1 |
 | CI | GitHub Actions |
 
@@ -30,11 +30,11 @@ Design: [docs/architecture/owntracks.md](docs/architecture/owntracks.md).
 
 ```bash
 make up && make migrate
+pnpm install
 export BRONZE_LOCAL_DIR=var/bronze DATABASE_URL=postgresql://lifelog:lifelog@localhost:5432/lifelog
-uv sync --all-packages
-uv run lifelog-ingest serve owntracks --port 8080   # terminal 2
-make demo-owntracks                                  # POST sample location
-uv run lifelog-ingest materialize owntracks
+pnpm --filter @lifelog/ingest dev serve owntracks --port 8080   # terminal 2
+make demo-owntracks
+pnpm --filter @lifelog/ingest dev materialize owntracks
 make dbt-owntracks
 ```
 
