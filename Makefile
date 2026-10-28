@@ -1,6 +1,6 @@
 COMPOSE = docker compose -f deploy/docker/docker-compose.yml
 
-.PHONY: up down migrate dbt-parse lint
+.PHONY: up down migrate dbt-parse dbt-owntracks lint test demo-owntracks
 
 up:
 	$(COMPOSE) up -d
@@ -21,10 +21,10 @@ dbt-owntracks:
 	cd packages/dbt && dbt build --select tag:owntracks --profiles-dir .
 
 lint:
-	uv run ruff check packages/lifelog_core packages/ingest
+	pnpm --filter @lifelog/ingest typecheck
 
 test:
-	uv run pytest packages/lifelog_core/tests -q
+	pnpm --filter @lifelog/ingest test
 
 demo-owntracks:
 	curl -sS -X POST http://127.0.0.1:8080/ingest/owntracks \

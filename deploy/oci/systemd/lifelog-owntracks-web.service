@@ -8,7 +8,7 @@ Type=simple
 User=lifelog
 WorkingDirectory=/opt/lifelog-data-vault
 EnvironmentFile=/etc/lifelog/env
-ExecStart=/opt/lifelog-data-vault/.venv/bin/lifelog-ingest serve owntracks --host 127.0.0.1 --port 8080
+ExecStart=/usr/bin/node /opt/lifelog-data-vault/packages/ingest/dist/cli.js serve owntracks --host 127.0.0.1 --port 8080
 Restart=on-failure
 
 [Install]
