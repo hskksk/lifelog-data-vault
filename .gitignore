@@ -2,6 +2,7 @@
 .env.*
 !.env.example
 .venv/
+var/
 __pycache__/
 *.pyc
 .pytest_cache/
@@ -12,3 +13,4 @@ packages/dbt/logs/
 packages/dbt/profiles.yml
 .DS_Store
 *.log
+packages/dbt/.user.yml
