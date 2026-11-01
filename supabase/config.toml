@@ -35,7 +35,8 @@ port = 54322
 # Port used by db diff command to initialize the shadow database.
 shadow_port = 54320
 # Maximum amount of time to wait for health check when starting the local database.
-health_timeout = "2m"
+# OwnTracks stack only needs DB, API, Storage, Auth, Edge — allow slow Docker Desktop boots.
+health_timeout = "5m"
 # The database major version to use. This has to be the same as your remote database's. Run `SHOW
 # server_version;` on the remote database to check.
 major_version = 17
@@ -87,8 +88,8 @@ allowed_cidrs_v6 = ["::/0"]
 
 [realtime]
 enabled = true
-# Bind realtime via either IPv4 or IPv6. (default: IPv4)
-# ip_version = "IPv6"
+# Force IPv4 when DB_HOST is a Docker DNS name (avoids Realtime "DB_HOST: nxdomain" on first boot).
+ip_version = "IPv4"
 # The maximum length in bytes of HTTP request headers. (default: 4096)
 # max_header_length = 4096
 
@@ -146,7 +147,7 @@ max_catalogs = 2
 
 # Store vector embeddings in S3 for large and durable datasets
 [storage.vector]
-enabled = true
+enabled = false
 max_buckets = 10
 max_indexes = 5
 
@@ -388,7 +389,7 @@ deno_version = 2
 # secret_key = "env(SECRET_VALUE)"
 
 [analytics]
-enabled = true
+enabled = false
 port = 54327
 # Configure one of the supported backends: `postgres`, `bigquery`.
 backend = "postgres"

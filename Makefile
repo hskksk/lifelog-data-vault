@@ -19,7 +19,7 @@ supabase-start:
 	$(SUPABASE) start
 
 supabase-stop:
-	$(SUPABASE) stop
+	$(SUPABASE) stop --no-backup
 
 supabase-reset:
 	$(SUPABASE) db reset
