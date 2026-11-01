@@ -27,9 +27,16 @@ cd packages/dbt && dbt deps && dbt parse
 
 Fill `SUPABASE_SERVICE_ROLE_KEY` and confirm `DATABASE_URL` from `npx supabase status -o json`.
 
-**Important:** use a commit that includes the Supabase slim-stack config (after `b2baa1f`). Run `git pull` on `cursor/supabase-s1-a571` (or merge PR #11) before `make supabase-start`.
+Local API/DB ports are **5442x** (see `supabase/config.toml`) so this stack can run beside other Supabase projects on the default 5432x ports.
 
 `make supabase-start` passes `-x logflare,vector,realtime` and `config.toml` disables those services — OwnTracks / Vault only needs Postgres, Kong, Storage, Auth, Studio, Edge runtime.
+
+**Edge ingest (S2):** with the stack up and migrations applied:
+
+```bash
+make supabase-functions-serve   # terminal 2; uses .env INGEST_BEARER_TOKEN
+make demo-owntracks-edge
+```
 
 If startup still fails, stop cleanly and retry (migrations already applied are fine):
 

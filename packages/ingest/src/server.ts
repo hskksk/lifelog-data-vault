@@ -3,7 +3,7 @@ import { randomUUID } from "node:crypto";
 import { Hono } from "hono";
 import { serve } from "@hono/node-server";
 
-import { newBatchMeta } from "./batch.js";
+import { newBatchMeta } from "@lifelog/ingest-core";
 import { putBronzeJsonLocal } from "./bronze/local.js";
 import { putBronzeJsonR2 } from "./bronze/r2.js";
 import { getSettings } from "./config.js";
@@ -24,7 +24,7 @@ export function createApp(): Hono {
     }
 
     const payload = await c.req.json();
-    const batch = newBatchMeta();
+    const batch = newBatchMeta(randomUUID());
     const requestId = randomUUID();
     const recordSource = "owntracks";
 
