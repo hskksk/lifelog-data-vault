@@ -141,10 +141,10 @@ sat_owntracks_location          属性 + hashdiff（insert-only）
 ## 11. リポジトリ配置（実装時）
 
 ```
-packages/ingest/lifelog_ingest/sources/owntracks/
-  webhook.py
-  bronze_writer.py
-  materialize.py
+packages/ingest/src/              # TypeScript (@lifelog/ingest)
+  server.ts                       # Hono POST /ingest/owntracks
+  owntracks/materialize.ts
+  bronze/, db.ts, owntracks/parse.ts
 packages/dbt/models/staging/stg_owntracks__location.sql
 packages/dbt/models/raw_vault/...   # hub/link/sat
 config/sources.yml                  # owntracks.enabled

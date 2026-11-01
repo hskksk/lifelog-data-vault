@@ -31,8 +31,7 @@ GitHub → CI (ingest typecheck, dbt parse)
 ## Repository layout
 
 ```
-packages/lifelog_core/   shared batch, R2, DB helpers
-packages/ingest/         source CLIs → Bronze
+packages/ingest/         TypeScript ingest (Hono webhook, materialize → Bronze)
 packages/dbt/            dbt project lifelog_vault
 deploy/docker/           local Postgres
 deploy/sql/migrations/   Hub/Link/Sat DDL
