@@ -4,25 +4,28 @@ See GitHub issue #4 for the canonical design discussion snapshot.
 
 Source-specific designs: [owntracks.md](./owntracks.md) (location / H3).
 
+**Production runtime (dbt 以外):** [supabase-runtime.md](./supabase-runtime.md) — Postgres, Edge ingest/materialize, Storage Bronze.
+
 ## Purpose
 
-Ingest personal lifelog data (health, PC activity, manual metrics), store immutable Bronze on R2, model **Data Vault 2.0** in PostgreSQL, expose marts for BI.
+Ingest personal lifelog data (health, PC activity, manual metrics), store immutable Bronze (Supabase Storage), model **Data Vault 2.0** in **Supabase Postgres**, expose marts for BI. **dbt** runs outside Supabase (e.g. GitHub Actions).
 
 ## Principles
 
 1. Layer boundaries match directories (ingest / staging / raw_vault / business_vault / mart).
 2. New sources add ingest module + dbt staging + satellites (hubs stable).
 3. Every load is traceable via `batch_id`, `record_source`, `load_dts`.
-4. Secrets never committed; runtime env on OCI VM.
-5. Local dev via Docker Compose Postgres; R2 dev bucket or MinIO optional.
+4. Secrets never committed; Supabase Edge Secrets + GitHub Secrets for dbt.
+5. Local dev via `supabase start`; dbt uses pooler URL from `.env` (not committed).
 6. Vault DDL in SQL migrations; dbt owns transforms into existing tables.
 
 ## Logical architecture
 
 ```
-Sources → ingest (OCI cron) → Bronze R2 + ops.ingest_batch
-Bronze / staging inputs → dbt → raw_vault → business_vault → mart
-GitHub → CI (parse, compile, tests); production dbt on OCI
+Sources → Edge ingest → Storage Bronze + ops.ingest_batch
+Cron → Edge materialize → staging inbox
+GitHub Actions → dbt → raw_vault → business_vault → mart
+GitHub → CI (ingest typecheck, dbt parse)
 ```
 
 ## Repository layout

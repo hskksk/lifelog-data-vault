@@ -17,7 +17,7 @@
 
 | 項目 | 決定 |
 |------|------|
-| 公開経路 | **Cloudflare Tunnel**（OCI 上は Webhook のみ `127.0.0.1`、443 は開けない） |
+| 公開経路 | **Supabase Edge Function**（本番）。自前ホスト時は [Cloudflare Tunnel](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/)（レガシー） |
 | 空間キー | **最初から H3**（resolution 9）を `hub_location_h3` のビジネスキー |
 | 端末キー | **`topic` 全文**を `hub_device` の BK（例: `owntracks/me/iphone`） |
 | 人物キー | **`config/person_map.yml` の `person_id`**（個人は `me` 等 1 行で開始） |
