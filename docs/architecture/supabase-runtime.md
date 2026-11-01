@@ -197,8 +197,8 @@ jobs:
 ## 8. セキュリティチェックリスト
 
 - [ ] ingest Edge: `verify_jwt = false` でも **Bearer 必須**（トークン未設定時は 503 で起動拒否）
-- [ ] Storage bucket `bronze`: private、signed URL 不要（Functions のみアクセス）
-- [ ] スキーマを API から隔離 + RLS enabled
+- [x] Storage bucket `bronze`: private、signed URL 不要（Functions のみアクセス） — S1 migration
+- [x] スキーマを API から隔離 + RLS enabled — S1 `config.toml` + migrations
 - [ ] service_role をクライアント（OwnTracks）に渡さない
 - [ ] GitHub Secret の DB URL は `dbt_runner` 専用ユーザー
 
