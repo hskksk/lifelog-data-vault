@@ -1,6 +1,7 @@
 COMPOSE = docker compose -f deploy/docker/docker-compose.yml
+SUPABASE ?= npx --yes supabase@2.122.0
 
-.PHONY: up down migrate dbt-parse dbt-owntracks lint test demo-owntracks
+.PHONY: up down migrate supabase-start supabase-stop supabase-reset dbt-parse dbt-owntracks lint test demo-owntracks
 
 up:
 	$(COMPOSE) up -d
@@ -13,6 +14,15 @@ migrate:
 		-v ON_ERROR_STOP=1 -f deploy/sql/migrations/V001__schemas.sql
 	psql "$${DATABASE_URL:-postgresql://lifelog:lifelog@localhost:5432/lifelog}" \
 		-v ON_ERROR_STOP=1 -f deploy/sql/migrations/V002__owntracks_staging.sql
+
+supabase-start:
+	$(SUPABASE) start
+
+supabase-stop:
+	$(SUPABASE) stop
+
+supabase-reset:
+	$(SUPABASE) db reset
 
 dbt-parse:
 	cd packages/dbt && dbt parse --profiles-dir .

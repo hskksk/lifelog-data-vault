@@ -1,0 +1,1 @@
+-- No seed data for S1 (pipeline config stays in Git: config/person_map.yml).
