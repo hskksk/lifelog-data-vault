@@ -87,8 +87,8 @@ allowed_cidrs_v6 = ["::/0"]
 # enabled = true
 
 [realtime]
-enabled = true
-# Force IPv4 when DB_HOST is a Docker DNS name (avoids Realtime "DB_HOST: nxdomain" on first boot).
+# Lifelog pipeline does not use Realtime; disabling avoids Docker DNS nxdomain on macOS.
+enabled = false
 ip_version = "IPv4"
 # The maximum length in bytes of HTTP request headers. (default: 4096)
 # max_header_length = 4096

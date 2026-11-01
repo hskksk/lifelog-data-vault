@@ -27,14 +27,18 @@ cd packages/dbt && dbt deps && dbt parse
 
 Fill `SUPABASE_SERVICE_ROLE_KEY` and confirm `DATABASE_URL` from `npx supabase status -o json`.
 
-If `supabase start` fails with Realtime **`DB_HOST: nxdomain`** or several containers **unhealthy**, stop cleanly and retry (migrations already applied are fine):
+**Important:** use a commit that includes the Supabase slim-stack config (after `b2baa1f`). Run `git pull` on `cursor/supabase-s1-a571` (or merge PR #11) before `make supabase-start`.
+
+`make supabase-start` passes `-x logflare,vector,realtime` and `config.toml` disables those services — OwnTracks / Vault only needs Postgres, Kong, Storage, Auth, Studio, Edge runtime.
+
+If startup still fails, stop cleanly and retry (migrations already applied are fine):
 
 ```bash
-make supabase-stop   # or: npx supabase stop --no-backup
+make supabase-stop
 make supabase-start
 ```
 
-This repo disables **Logflare analytics** and **Storage vector** in `supabase/config.toml` (not needed for Bronze ingest) and sets Realtime **`ip_version = "IPv4"`** to avoid Docker DNS races on macOS.
+Realtime **`DB_HOST: nxdomain`** on older commits came from the Realtime container starting before Docker DNS was ready; excluding/disabling Realtime fixes that. Supabase recommends ~7GB RAM for the full stack; this project starts a smaller subset.
 
 ### Legacy Docker Postgres
 

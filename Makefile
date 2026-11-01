@@ -1,5 +1,7 @@
 COMPOSE = docker compose -f deploy/docker/docker-compose.yml
 SUPABASE ?= npx --yes supabase@2.122.0
+# Services not needed for Bronze ingest / Vault (also avoids Realtime DB_HOST nxdomain).
+SUPABASE_START_EXCLUDE ?= logflare,vector,realtime
 
 .PHONY: up down migrate supabase-start supabase-stop supabase-reset dbt-parse dbt-owntracks lint test demo-owntracks
 
@@ -16,7 +18,7 @@ migrate:
 		-v ON_ERROR_STOP=1 -f deploy/sql/migrations/V002__owntracks_staging.sql
 
 supabase-start:
-	$(SUPABASE) start
+	$(SUPABASE) start -x $(SUPABASE_START_EXCLUDE)
 
 supabase-stop:
 	$(SUPABASE) stop --no-backup
