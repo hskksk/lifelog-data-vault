@@ -29,7 +29,7 @@ Fill `SUPABASE_SERVICE_ROLE_KEY` and confirm `DATABASE_URL` from `npx supabase s
 
 Local API/DB ports are **5442x** (see `supabase/config.toml`) so this stack can run beside other Supabase projects on the default 5432x ports.
 
-`make supabase-start` passes `-x logflare,vector,realtime` and `config.toml` disables those services — OwnTracks / Vault only needs Postgres, Kong, Storage, Auth, Studio, Edge runtime.
+`make supabase-start` builds `@lifelog/ingest-core` (Edge imports `dist/*.js`) then passes `-x logflare,vector,realtime`. OwnTracks / Vault only needs Postgres, Kong, Storage, Auth, Studio, Edge runtime.
 
 **Edge ingest (S2):** with the stack up and migrations applied:
 

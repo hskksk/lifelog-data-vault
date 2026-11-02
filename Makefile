@@ -3,7 +3,7 @@ SUPABASE ?= npx --yes supabase@2.122.0
 # Services not needed for Bronze ingest / Vault (also avoids Realtime DB_HOST nxdomain).
 SUPABASE_START_EXCLUDE ?= logflare,vector,realtime
 
-.PHONY: up down migrate supabase-start supabase-stop supabase-reset supabase-functions-serve dbt-parse dbt-owntracks lint test demo-owntracks demo-owntracks-edge
+.PHONY: up down migrate ingest-core-build supabase-start supabase-stop supabase-reset supabase-functions-serve dbt-parse dbt-owntracks lint test demo-owntracks demo-owntracks-edge
 
 up:
 	$(COMPOSE) up -d
@@ -17,7 +17,10 @@ migrate:
 	psql "$${DATABASE_URL:-postgresql://lifelog:lifelog@localhost:5432/lifelog}" \
 		-v ON_ERROR_STOP=1 -f deploy/sql/migrations/V002__owntracks_staging.sql
 
-supabase-start:
+ingest-core-build:
+	pnpm --filter @lifelog/ingest-core build
+
+supabase-start: ingest-core-build
 	$(SUPABASE) start -x $(SUPABASE_START_EXCLUDE)
 
 supabase-stop:
@@ -26,7 +29,7 @@ supabase-stop:
 supabase-reset:
 	$(SUPABASE) db reset
 
-supabase-functions-serve:
+supabase-functions-serve: ingest-core-build
 	$(SUPABASE) functions serve owntracks-ingest --env-file .env
 
 dbt-parse:
