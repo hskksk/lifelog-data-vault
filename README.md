@@ -48,6 +48,25 @@ make demo-materialize-edge   # sources .env for curl; Bearer must match Edge env
 
 Or serve both functions: `make supabase-functions-serve`. Production Cron (`*/15`) is defined in migrations when `app.supabase_functions_url` and `app.supabase_service_role_key` database settings are set.
 
+### dbt (S4 — GitHub Actions)
+
+Scheduled workflow [`.github/workflows/owntracks-dbt.yml`](.github/workflows/owntracks-dbt.yml) runs `dbt build --select tag:owntracks` hourly at **UTC :05**.
+
+**Production setup**
+
+1. Apply migrations (role `dbt_runner` is created without a password in SQL).
+2. Supabase Dashboard → SQL: `alter role dbt_runner password '<strong-password>';`
+3. Build **session mode** pooler URL for `dbt_runner` ([connecting guide](https://supabase.com/docs/guides/database/connecting-to-postgres)).
+4. GitHub repo → Settings → Secrets → **`SUPABASE_DB_URL`** = full `postgresql://dbt_runner:...@...pooler.../postgres` URL (sslmode as required).
+
+**Local dbt after `make supabase-reset`**
+
+```bash
+cp packages/dbt/profiles.yml.example packages/dbt/profiles.yml
+# target: supabase_local (postgres) or supabase_dbt_runner (seed sets password local-dbt-runner)
+cd packages/dbt && dbt deps && dbt build --select tag:owntracks --profiles-dir .
+```
+
 If startup still fails, stop cleanly and retry (migrations already applied are fine):
 
 ```bash

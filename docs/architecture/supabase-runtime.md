@@ -208,7 +208,7 @@ jobs:
 - [x] Storage bucket `bronze`: private、signed URL 不要（Functions のみアクセス） — S1 migration
 - [x] スキーマを API から隔離 + RLS enabled — S1 `config.toml` + migrations
 - [ ] service_role をクライアント（OwnTracks）に渡さない
-- [ ] GitHub Secret の DB URL は `dbt_runner` 専用ユーザー
+- [x] GitHub Secret の DB URL は `dbt_runner` 専用ユーザー — migration + README
 
 ---
 
@@ -219,7 +219,7 @@ jobs:
 | **S1** | `supabase/` 初期化、migrations（V001/V002 相当）、スキーマ非露出 |
 | **S2** | Edge `owntracks-ingest` + Storage Bronze + `ops.ingest_batch` |
 | **S3** | Edge `owntracks-materialize` + Cron（migration で pg_cron；prod は DB 設定 `app.supabase_functions_url` / `app.supabase_service_role_key`） |
-| **S4** | GitHub Actions `owntracks-dbt.yml`、Secrets ドキュメント |
+| **S4** | GitHub Actions `owntracks-dbt.yml`、`dbt_runner` migration、Secrets ドキュメント |
 | **S5** | OwnTracks 実機接続、24h 監視（batch 0 件アラートは将来） |
 
 **リポジトリから削除・更新:** `deploy/oci/systemd/*` は「レガシー / 自前ホスト用」として archive または README 注記。`docs/architecture/owntracks.md` の Tunnel / OCI 節を「Supabase 版は [supabase-runtime.md](./supabase-runtime.md)」へ誘導。
