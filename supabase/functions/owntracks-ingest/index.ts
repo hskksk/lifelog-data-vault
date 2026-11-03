@@ -3,23 +3,11 @@ import {
   newBatchMeta,
   planBronzeJsonWrite,
 } from "@lifelog/ingest-core";
-import { createClient } from "@supabase/supabase-js";
+import { createAdminClient } from "@lifelog/supabase-admin";
 import { Hono } from "hono";
 
 const BRONZE_BUCKET = "bronze";
 const RECORD_SOURCE = "owntracks";
-
-function requireEnv(name: string): string {
-  const value = Deno.env.get(name);
-  if (!value) throw new Error(`Missing ${name}`);
-  return value;
-}
-
-function createServiceClient() {
-  return createClient(requireEnv("SUPABASE_URL"), requireEnv("SUPABASE_SERVICE_ROLE_KEY"), {
-    auth: { persistSession: false, autoRefreshToken: false },
-  });
-}
 
 const FUNCTION_NAME = "owntracks-ingest";
 const app = new Hono().basePath(`/${FUNCTION_NAME}`);
@@ -51,7 +39,7 @@ app.post("/", async (c) => {
     requestId: crypto.randomUUID(),
   });
 
-  const supabase = createServiceClient();
+  const supabase = createAdminClient();
   for (const obj of plan.objects) {
     const path = bronzeStorageObjectPath(obj.storageKey);
     const { error } = await supabase.storage.from(BRONZE_BUCKET).upload(path, obj.body, {

@@ -63,7 +63,7 @@ flowchart TB
 | `business_vault` | bv_* | **exposed しない** |
 | `mart` | BI 用 view/table | 将来 Metabase 直結なら検討 |
 
-`config.toml` の `[api] schemas` から上記を **除外**し、パイプラインは **`service_role` のみ**（Edge Functions 内）。Anon/authenticated からは読めない。
+`config.toml` の `[api] schemas` から上記を **除外**し、パイプラインは **secret API key**（`sb_secret_...`、legacy `service_role` JWT は使わない）経由の Edge のみ。Anon/authenticated からは読めない。
 
 各テーブル作成後 **RLS ENABLE**（ポリシーなしでも service_role は bypass）。防御深さのため必須。
 
@@ -82,7 +82,7 @@ bronze/owntracks/dt=YYYY-MM-DD/batch=<uuid>/data/<iso>_<request_id>.json
 bronze/owntracks/dt=YYYY-MM-DD/batch=<uuid>/_meta/batch.json
 ```
 
-- Edge ingest は **Supabase Storage API**（service role）で PUT。R2 は **本フェーズでは使わない**（後から Edge を dual-write する拡張は可能）。
+- Edge ingest は **Supabase Storage API**（admin client + secret key）で PUT。R2 は **本フェーズでは使わない**（後から Edge を dual-write する拡張は可能）。
 
 ---
 
@@ -107,7 +107,7 @@ bronze/owntracks/dt=YYYY-MM-DD/batch=<uuid>/_meta/batch.json
 **実装方針**
 
 - Deno + **Hono**（`packages/ingest` の parse / batch / paths ロジックを **`packages/ingest-core`** または `_shared` に抽出し Edge から import）
-- DB: `@supabase/supabase-js` + service role、または `postgres` Deno クライアント（どちらかに統一）
+- DB: `@supabase/supabase-js` + **secret key**（`_shared/supabase-admin.ts`）、Postgres 直結は使わない
 - **location の parse / H3 / person_map** は ingest 時点では不要（生 JSON のみ Bronze）。materialize で実施（現行 TS と同じ）
 
 ### 4.2 `owntracks-materialize`
@@ -132,13 +132,13 @@ supabase/functions/
 packages/ingest/               # ローカル dev 用 CLI（Storage エミュ / 直 POST テスト）— 任意
 ```
 
-ローカル開発: `supabase start` + `supabase functions serve owntracks-ingest owntracks-materialize` + curl。materialize は `Authorization: Bearer <service_role>`。
+ローカル開発: `supabase start` + `supabase functions serve ... --env-file .env`（`.env` に `SUPABASE_SECRET_KEY`）。materialize の手動 curl は **`apikey: sb_secret_...`**（[新 API keys](https://supabase.com/docs/guides/getting-started/migrating-to-new-api-keys)）。
 
 **Prod Cron 用 DB 設定（Dashboard SQL、Secret は DB にのみ）:**
 
 ```sql
 alter database postgres set app.supabase_functions_url = 'https://<project-ref>.supabase.co/functions/v1';
-alter database postgres set app.supabase_service_role_key = '<service-role-jwt>';
+alter database postgres set app.supabase_secret_key = 'sb_secret_...';
 select pg_reload_conf();
 ```
 
@@ -149,7 +149,7 @@ select pg_reload_conf();
 | Secret | 用途 |
 |--------|------|
 | `INGEST_BEARER_TOKEN` | OwnTracks → Edge 認証 |
-| `SUPABASE_SERVICE_ROLE_KEY` | Functions 内（自動注入される環境変数を利用） |
+| （Hosted Edge） | 本番 Functions は `SUPABASE_SECRET_KEYS` をプラットフォーム注入（`default` を `_shared/supabase-admin.ts` が使用） |
 | `SUPABASE_URL` | 同上 |
 | `PERSON_MAP_JSON` または Storage 上 `config/person_map.yml` | person_id 解決（materialize 時） |
 
@@ -221,7 +221,7 @@ jobs:
 
 **ローカル:** `pnpm --filter @lifelog/ingest-core build` のあと `.env` に Edge 用シークレットのみ載せ、`pnpm deploy`（要 `SUPABASE_*` 環境変数）。
 
-**手動で残す作業（deploy 外）:** `dbt_runner` パスワード、`SUPABASE_DB_URL`（dbt CI）、DB 設定 `app.supabase_functions_url` / `app.supabase_service_role_key`（materialize Cron）、Bronze への `person_map.yml` アップロード（Secret を使わない場合）。
+**手動で残す作業（deploy 外）:** `dbt_runner` パスワード、`SUPABASE_DB_URL`（dbt CI）、DB 設定 `app.supabase_functions_url` / `app.supabase_secret_key`（materialize Cron・`apikey` ヘッダ）、Bronze への `person_map.yml` アップロード（Secret を使わない場合）。
 
 **OCI / cloudflared:** 本設計では **プロダクション対象外**。README に「Supabase ランタイム」を正と記載。
 
@@ -249,7 +249,7 @@ jobs:
 - [ ] ingest Edge: `verify_jwt = false` でも **Bearer 必須**（トークン未設定時は 503 で起動拒否）
 - [x] Storage bucket `bronze`: private、signed URL 不要（Functions のみアクセス） — S1 migration
 - [x] スキーマを API から隔離 + RLS enabled — S1 `config.toml` + migrations
-- [ ] service_role をクライアント（OwnTracks）に渡さない
+- [ ] secret key / ingest Bearer をクライアント（OwnTracks）に渡さない（ingest は専用 Bearer のみ）
 - [x] GitHub Secret の DB URL は `dbt_runner` 専用ユーザー — migration + README
 
 ---
@@ -260,7 +260,7 @@ jobs:
 |-------|--------|
 | **S1** | `supabase/` 初期化、migrations（V001/V002 相当）、スキーマ非露出 |
 | **S2** | Edge `owntracks-ingest` + Storage Bronze + `ops.ingest_batch` |
-| **S3** | Edge `owntracks-materialize` + Cron（migration で pg_cron；prod は DB 設定 `app.supabase_functions_url` / `app.supabase_service_role_key`） |
+| **S3** | Edge `owntracks-materialize` + Cron（pg_cron + `apikey`；prod は `app.supabase_secret_key`） |
 | **S4** | GitHub Actions `owntracks-dbt.yml`、`dbt_runner` migration、Secrets ドキュメント |
 | **S5** | OwnTracks 実機接続、24h 監視（batch 0 件アラートは将来） |
 

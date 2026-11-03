@@ -1,6 +1,7 @@
 {
   "imports": {
     "@lifelog/bronze": "../../../packages/ingest-core/dist/bronze.js",
+    "@lifelog/supabase-admin": "../_shared/supabase-admin.ts",
     "@lifelog/person-map": "../../../packages/ingest-core/src/person-map.ts",
     "@lifelog/parse": "../../../packages/ingest-core/src/owntracks/parse.ts",
     "@supabase/supabase-js": "npm:@supabase/supabase-js@2.49.8",
