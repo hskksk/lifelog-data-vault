@@ -59,12 +59,12 @@ Run [`.github/workflows/owntracks-dbt.yml`](.github/workflows/owntracks-dbt.yml)
 3. Run **Deploy to Supabase** once so `ops.sync_dbt_runner_password_from_vault()` applies it to role `dbt_runner`.
 4. GitHub secrets for dbt workflow: **`SUPABASE_ACCESS_TOKEN`**, **`SUPABASE_PROJECT_REF`**, **`SUPABASE_DB_PASSWORD`** (same as deploy — no `SUPABASE_DB_URL`).
 
-**Install dbt (local)** — match CI (`dbt-postgres` **1.9** on Python). Homebrew `dbt-core` **2.x** (`dbt-oss`) does not ship the Postgres adapter this project uses; prefer a venv:
+**Install dbt (local)** — match CI (**dbt-core 1.12 GA**, pinned in [`packages/dbt/requirements-ci.txt`](packages/dbt/requirements-ci.txt)). Homebrew `dbt-core` **2.x** (`dbt-oss`) is a different product line; prefer a venv:
 
 ```bash
 python3 -m venv .venv-dbt && source .venv-dbt/bin/activate
-pip install "dbt-postgres~=1.9"
-dbt --version   # 1.9.x — ensure `which dbt` is the venv, not Homebrew
+pip install -r packages/dbt/requirements-ci.txt
+dbt --version   # 1.12.x — ensure `which dbt` is the venv, not mise / Homebrew
 ```
 
 **Local dbt after `make supabase-reset`**
