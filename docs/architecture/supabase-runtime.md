@@ -195,8 +195,29 @@ jobs:
 | 環境 | 内容 |
 |------|------|
 | **local** | `supabase start`、migrations、functions serve、Storage ローカル |
-| **prod** | `supabase link` + `supabase db push` + `supabase functions deploy` |
-| **CI** | PR: `dbt parse`、Edge の typecheck（deno check または esbuild）；merge 後 deploy は手動 or Actions |
+| **prod** | `supabase link` + `supabase db push` + `supabase functions deploy`（または main マージで [deploy.yml](../../.github/workflows/deploy.yml) が同等を実行） |
+| **CI** | PR: [ci.yml](../../.github/workflows/ci.yml)（ingest typecheck/test、dbt parse）；main: [deploy.yml](../../.github/workflows/deploy.yml)（`db push` + functions、**seed なし**）；dbt スケジュールは S4 の `owntracks-dbt.yml` |
+
+### 7.1 GitHub Actions deploy（Supabase）
+
+[`deploy.yml`](../../.github/workflows/deploy.yml) は [hskksk/podcaster](https://github.com/hskksk/podcaster) の Deploy ワークフローと同型: `scripts/deploy.ts` が link → `secrets set` → **`db push`** → **`functions deploy`**。
+
+**トリガ:** `main` へ push（`supabase/**`, `packages/ingest-core/**`, deploy スクリプト等）または `workflow_dispatch`。
+
+**リポジトリ Secrets（必須）**
+
+| Secret | 用途 |
+|--------|------|
+| `SUPABASE_ACCESS_TOKEN` | CLI ログイン（Dashboard → Account → Access Tokens） |
+| `SUPABASE_PROJECT_REF` | プロジェクト ref |
+| `SUPABASE_DB_PASSWORD` | `supabase link` / migration push 用 DB パスワード |
+| `INGEST_BEARER_TOKEN` | Edge ingest の Bearer（OwnTracks と同じ値） |
+
+**任意:** `PERSON_MAP_YAML` — materialize が Storage の `config/person_map.yml` の代わりに使う場合。
+
+**ローカル:** `pnpm --filter @lifelog/ingest-core build` のあと `.env` に Edge 用シークレットのみ載せ、`pnpm deploy`（要 `SUPABASE_*` 環境変数）。
+
+**手動で残す作業（deploy 外）:** `dbt_runner` パスワード、`SUPABASE_DB_URL`（dbt CI）、DB 設定 `app.supabase_functions_url` / `app.supabase_service_role_key`（materialize Cron）、Bronze への `person_map.yml` アップロード（Secret を使わない場合）。
 
 **OCI / cloudflared:** 本設計では **プロダクション対象外**。README に「Supabase ランタイム」を正と記載。
 

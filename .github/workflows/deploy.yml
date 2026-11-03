@@ -1,0 +1,54 @@
+name: Deploy to Supabase
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "supabase/**"
+      - "packages/ingest-core/**"
+      - "scripts/deploy.ts"
+      - "scripts/lib/**"
+      - "package.json"
+      - "pnpm-lock.yaml"
+      - ".github/workflows/deploy.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: supabase-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+      SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.14.0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - run: pnpm --filter @lifelog/ingest-core build
+
+      - run: pnpm typecheck
+
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.122.0
+
+      - name: Create Edge secrets .env
+        run: echo "INGEST_BEARER_TOKEN=${{ secrets.INGEST_BEARER_TOKEN }}" > .env
+
+      - name: Deploy
+        run: pnpm run deploy
