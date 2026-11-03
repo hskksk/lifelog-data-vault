@@ -99,10 +99,7 @@ bronze/owntracks/dt=YYYY-MM-DD/batch=<uuid>/_meta/batch.json
 | 応答 | `202` / `{ batch_id, bronze_prefix }` |
 | タイムアウト | 軽量のためデフォルトで足りる想定 |
 
-**OwnTracks アプリ設定例**
-
-- URL: `https://<project-ref>.supabase.co/functions/v1/owntracks-ingest`
-- HTTP ヘッダ（アプリがサポートする場合）: `Authorization: Bearer …`
+**OwnTracks 端末設定:** 項目ごとの値は [../operations/owntracks-ingest-setup.md](../operations/owntracks-ingest-setup.md)（GitHub / Edge secret、URL、iOS `httpHeaders`、Android の制約）。
 
 **実装方針**
 

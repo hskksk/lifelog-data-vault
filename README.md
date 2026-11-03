@@ -112,7 +112,7 @@ Cron / dbt / `dbt_runner` password remain one-time Dashboard or SQL setup (not i
 
 ### OwnTracks (location)
 
-Design: [docs/architecture/owntracks.md](docs/architecture/owntracks.md). Supabase runtime: [docs/architecture/supabase-runtime.md](docs/architecture/supabase-runtime.md).
+Design: [docs/architecture/owntracks.md](docs/architecture/owntracks.md). Supabase runtime: [docs/architecture/supabase-runtime.md](docs/architecture/supabase-runtime.md). **OwnTracks app URL / Bearer:** [docs/operations/owntracks-ingest-setup.md](docs/operations/owntracks-ingest-setup.md).
 
 ```bash
 pnpm install
