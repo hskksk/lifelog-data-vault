@@ -200,6 +200,23 @@ jobs:
 
 **OCI / cloudflared:** 本設計では **プロダクション対象外**。README に「Supabase ランタイム」を正と記載。
 
+### 7.1 `supabase/seed.sql` と本番
+
+**結論:** 通常の本番デプロイ（`supabase db push`）では **`seed.sql` は自動実行されない**。マイグレーションだけがリモートに適用される。
+
+| 操作 | seed が走るか |
+|------|----------------|
+| ローカル `supabase db reset` / `make supabase-reset` | **はい**（`config.toml` の `[db.seed]` が有効） |
+| 本番 **`supabase db push`**（リンク済みリモート） | **いいえ**（デフォルト） |
+| 本リポジトリの GitHub Actions | **いいえ**（`db push` / seed を呼ばない） |
+| `supabase db push --include-seed --remote` | **はい**（明示オプション；[CLI ドキュメント](https://supabase.com/docs/reference/cli/supabase-db-push) は本番では使わない旨を記載） |
+| `supabase db reset --remote` | **はい**（DB 全消し＋migration＋seed。`--no-seed` で seed だけ省略） |
+| Supabase **Branching** の Preview デプロイ | プロジェクト設定で Seed ステップを **有効にした場合のみ**（本番 main とは別経路） |
+
+`seed.sql` の内容は **`dbt_runner` にローカル専用パスワード `local-dbt-runner` を設定するだけ**。本番では migration でロール作成後、Dashboard SQL で別パスワードを設定する（README S4 手順）。
+
+参照: [Seeding your database](https://supabase.com/docs/guides/local-development/seeding-your-database)（seed は主にローカル reset 用）、[supabase/seed.sql](../../supabase/seed.sql) 先頭コメント。
+
 ---
 
 ## 8. セキュリティチェックリスト

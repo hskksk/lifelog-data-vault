@@ -54,8 +54,8 @@ Scheduled workflow [`.github/workflows/owntracks-dbt.yml`](.github/workflows/own
 
 **Production setup**
 
-1. Apply migrations (role `dbt_runner` is created without a password in SQL).
-2. Supabase Dashboard → SQL: `alter role dbt_runner password '<strong-password>';`
+1. Apply migrations only: `supabase link` then `supabase db push`. **`supabase/seed.sql` does not run on push** (it runs only on local `supabase db reset`). Do not use `db push --include-seed --remote` on production. Details: [docs/architecture/supabase-runtime.md §7.1](docs/architecture/supabase-runtime.md#71-supabaseseedsql-と本番).
+2. Role `dbt_runner` is created without a password in SQL. Supabase Dashboard → SQL: `alter role dbt_runner password '<strong-password>';`
 3. Build **session mode** pooler URL for `dbt_runner` ([connecting guide](https://supabase.com/docs/guides/database/connecting-to-postgres)).
 4. GitHub repo → Settings → Secrets → **`SUPABASE_DB_URL`** = full `postgresql://dbt_runner:...@...pooler.../postgres` URL (sslmode as required).
 
