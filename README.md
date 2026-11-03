@@ -25,7 +25,7 @@ make supabase-reset   # applies supabase/migrations + seed.sql
 cd packages/dbt && dbt deps && dbt parse
 ```
 
-Set `SUPABASE_SECRET_KEY` (`sb_secret_...` from Dashboard → API Keys) for Edge functions serve / materialize demo. Confirm `DATABASE_URL` from `npx supabase status -o json`.
+Set `SUPABASE_SECRET_KEY` (`sb_secret_...`; hosted: Dashboard → API Keys → default secret; local: copy from `npx supabase status -o json` when the CLI exposes secret keys) for `make supabase-functions-serve` / `make demo-materialize-edge`. Confirm `DATABASE_URL` from the same status output.
 
 Local API/DB ports are **5442x** (see `supabase/config.toml`) so this stack can run beside other Supabase projects on the default 5432x ports.
 
@@ -43,7 +43,7 @@ If Edge returns **404**, the Hono routes likely omit `basePath('/owntracks-inges
 **Materialize (S3):** after ingest, run Bronze → inbox staging:
 
 ```bash
-make demo-materialize-edge   # sources .env for curl; Bearer must match Edge env (same key as functions serve)
+make demo-materialize-edge   # sources .env; sends `apikey: $SUPABASE_SECRET_KEY` (same as prod Cron)
 ```
 
 Or serve both functions: `make supabase-functions-serve` (needs `SUPABASE_SECRET_KEY` in `.env`). Production Cron (`*/15`) runs when DB settings `app.supabase_functions_url` and `app.supabase_secret_key` are set (secret API key, not legacy JWT).
