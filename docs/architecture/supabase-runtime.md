@@ -208,12 +208,14 @@ jobs:
 
 | Secret | 用途 |
 |--------|------|
-| `SUPABASE_ACCESS_TOKEN` | CLI ログイン（Dashboard → Account → Access Tokens） |
+| `SUPABASE_ACCESS_TOKEN` | CLI + Management API（Account → Access Tokens）。スコープ付き PAT なら **Database Config → Read**（pooler 設定取得）と deploy 用 Read/Read-write（§7.1 の link / Edge 権限） |
 | `SUPABASE_PROJECT_REF` | プロジェクト ref |
-| `SUPABASE_DB_PASSWORD` | `supabase link` / `db push --linked` 用 DB パスワード |
+| `SUPABASE_DB_PASSWORD` | ホスト DB パスワード（pooler URL 組み立て・link 用） |
 | `INGEST_BEARER_TOKEN` | Edge ingest の Bearer（OwnTracks と同じ値） |
 
-**任意:** `SUPABASE_DB_PUSH_URL` — GitHub Actions は IPv4 のみのため、`db push` が `IPv6 is not supported` になる場合は Dashboard → Database → **Session pooler** の **postgres** 接続文字列（`*.pooler.supabase.com`）を Secret に設定。`scripts/deploy.ts` は `--db-url` で使う。
+**db push（IPv4）:** GitHub Actions は IPv6 direct に届かない。`deploy.ts` は Management API で **session pooler** を取得し `supabase db push --db-url …` する（TLS は **`sslmode=require`**。`ssl=true` ではない）。
+
+**任意:** `SUPABASE_DB_PUSH_URL` — API 取得を使わない場合は Dashboard → Connect → **Session pooler** の接続文字列。`?sslmode=require` が無ければ deploy 側で付与。
 
 **任意:** `PERSON_MAP_YAML` — materialize が Storage の `config/person_map.yml` の代わりに使う場合。
 
@@ -223,7 +225,7 @@ jobs:
 
 **OCI / cloudflared:** 本設計では **プロダクション対象外**。README に「Supabase ランタイム」を正と記載。
 
-### 7.1 `supabase/seed.sql` と本番
+### 7.2 `supabase/seed.sql` と本番
 
 **結論:** 通常の本番デプロイ（`supabase db push`）では **`seed.sql` は自動実行されない**。マイグレーションだけがリモートに適用される。
 
