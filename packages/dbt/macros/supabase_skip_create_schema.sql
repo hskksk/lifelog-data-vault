@@ -5,4 +5,8 @@
   disable that path).
 -#}
 {% macro postgres__create_schema(relation) -%}
+  {# dbt calls commit_if_has_connection() after this macro; run a no-op so a txn exists. #}
+  {%- call statement('create_schema') -%}
+    select 1 as dbt_schema_noop
+  {%- endcall -%}
 {%- endmacro %}
