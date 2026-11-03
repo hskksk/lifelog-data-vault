@@ -39,6 +39,8 @@ migration `ops.sync_dbt_runner_password_from_vault()` が Vault の値を `dbt_r
 
 Actions → **owntracks-dbt** → **Run workflow**。
 
+**`stg_owntracks__location` が空:** ビューは `where vault_loaded_at is null` のみ（Vault 投入済み行は inbox に残るが stg には出ない）。未処理行があるのに stg が空なら **RLS** — migration `20261104100000_dbt_runner_staging_inbox_rls.sql` を `db push` してから dbt を再実行。データ本体は `raw_vault.*` / `mart.*` を見る。
+
 ## 5. ローカル
 
 `make supabase-reset` の seed が Vault `dbt_runner_password` = `local-dbt-runner` を入れ sync する。`profiles.yml` の `supabase_dbt_runner` ターゲットを使う。
