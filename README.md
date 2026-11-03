@@ -54,7 +54,7 @@ Run [`.github/workflows/owntracks-dbt.yml`](.github/workflows/owntracks-dbt.yml)
 
 **Production setup**
 
-1. Apply migrations only: `supabase link` then `supabase db push`. **`supabase/seed.sql` does not run on push** (it runs only on local `supabase db reset`). Do not use `db push --include-seed --remote` on production. Details: [docs/architecture/supabase-runtime.md §7.1](docs/architecture/supabase-runtime.md#71-supabaseseedsql-と本番).
+1. Apply migrations only: `supabase link` then `supabase db push`. **`supabase/seed.sql` does not run on push** (it runs only on local `supabase db reset`). Do not use `db push --include-seed --remote` on production. Details: [docs/architecture/supabase-runtime.md §7.2](docs/architecture/supabase-runtime.md#72-supabaseseedsql-と本番).
 2. Role `dbt_runner` is created without a password in SQL. Supabase Dashboard → SQL: `alter role dbt_runner password '<strong-password>';`
 3. Build **session mode** pooler URL for `dbt_runner` ([connecting guide](https://supabase.com/docs/guides/database/connecting-to-postgres)).
 4. GitHub repo → Settings → Secrets → **`SUPABASE_DB_URL`** = full `postgresql://dbt_runner:...@...pooler.../postgres` URL (sslmode as required).
@@ -98,7 +98,7 @@ See [docs/architecture/overview.md](docs/architecture/overview.md) for monorepo 
 
 On push to **`main`** (paths under `supabase/`, `packages/ingest-core/`, etc.), [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml) runs `pnpm deploy`: link → Edge secrets → **`supabase db push`** (migrations only, no `seed.sql`) → deploy `owntracks-ingest` and `owntracks-materialize`. Manual run: Actions → **Deploy to Supabase** → **Run workflow**.
 
-**Repository secrets:** `SUPABASE_ACCESS_TOKEN`, `SUPABASE_PROJECT_REF`, `SUPABASE_DB_PASSWORD`, `INGEST_BEARER_TOKEN`. Optional: `SUPABASE_DB_PUSH_URL` — session pooler URL for **postgres** (Dashboard → Connect → Session pooler) if `db push` fails with **IPv6 is not supported** on GitHub Actions. Optional: `PERSON_MAP_YAML`. See [docs/architecture/supabase-runtime.md §7.1](docs/architecture/supabase-runtime.md#71-github-actions-deploysupabase).
+**Repository secrets:** `SUPABASE_ACCESS_TOKEN`, `SUPABASE_PROJECT_REF`, `SUPABASE_DB_PASSWORD`, `INGEST_BEARER_TOKEN`. Deploy resolves the **session pooler** URL via Management API (token needs **Database Config → Read**) and runs `db push` with **`sslmode=require`** (Postgres uses `sslmode`, not `ssl=true`). Optional override: `SUPABASE_DB_PUSH_URL` (Dashboard → Connect → Session pooler, append `?sslmode=require` if missing). Optional: `PERSON_MAP_YAML`. See [docs/architecture/supabase-runtime.md §7.1](docs/architecture/supabase-runtime.md#71-github-actions-deploysupabase).
 
 Local equivalent (after `pnpm --filter @lifelog/ingest-core build`):
 
