@@ -36,7 +36,7 @@ lifelog_vault:
       host: "{{ env_var('DBT_PG_HOST') }}"
       user: "{{ env_var('DBT_PG_USER') }}"
       password: "{{ env_var('DBT_PG_PASSWORD') }}"
-      port: "{{ env_var('DBT_PG_PORT') }}"
+      port: "{{ env_var('DBT_PG_PORT') | int }}"
       dbname: "{{ env_var('DBT_PG_DBNAME') }}"
       sslmode: "{{ env_var('DBT_PG_SSLMODE') }}"
       schema: staging
