@@ -1,7 +1,7 @@
 name: owntracks-dbt
 
 on:
-  # Manual only until schedule is re-enabled (materialize Cron is */15 in DB).
+  # Manual only (no cron). Materialize */15 is pg_cron in supabase/migrations — not a GHA workflow.
   workflow_dispatch:
 
 concurrency:

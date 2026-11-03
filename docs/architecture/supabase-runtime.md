@@ -193,6 +193,16 @@ jobs:
 
 ## 7. デプロイ・環境
 
+### 7.0 定期実行の分担（GitHub Actions ではないもの）
+
+| 処理 | どこで動く | リポジトリ上の根拠 |
+|------|------------|-------------------|
+| **materialize**（Bronze → inbox） | **Supabase Postgres の pg_cron**（15 分） | `supabase/migrations/*materialize*cron*.sql` → ジョブ `owntracks-materialize` → `invoke_owntracks_materialize()` |
+| **dbt**（inbox → Vault / mart） | **GitHub Actions 手動のみ** | [`.github/workflows/owntracks-dbt.yml`](../../.github/workflows/owntracks-dbt.yml) は **`workflow_dispatch` のみ**（cron なし） |
+| **deploy**（migrations / Edge） | push to `main` または手動 | [`.github/workflows/deploy.yml`](../../.github/workflows/deploy.yml) |
+
+**materialize 用の GitHub Actions workflow（schedule）は意図していない。** dbt の workflow に「materialize Cron は DB」と書いてあるのは、**dbt の cron を入れない理由**の説明であり、materialize が GHA 上にあるわけではない。Vault + pg_cron は `db push` で本番 DB に載る（`.github/workflows/` には現れない）。
+
 | 環境 | 内容 |
 |------|------|
 | **local** | `supabase start`、migrations、functions serve、Storage ローカル |
