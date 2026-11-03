@@ -43,7 +43,7 @@ If Edge returns **404**, the Hono routes likely omit `basePath('/owntracks-inges
 **Materialize (S3):** after ingest, run Bronze → inbox staging:
 
 ```bash
-make demo-materialize-edge   # uses SUPABASE_SERVICE_ROLE_KEY from .env
+make demo-materialize-edge   # sources .env for curl; Bearer must match Edge env (same key as functions serve)
 ```
 
 Or serve both functions: `make supabase-functions-serve`. Production Cron (`*/15`) is defined in migrations when `app.supabase_functions_url` and `app.supabase_service_role_key` database settings are set.

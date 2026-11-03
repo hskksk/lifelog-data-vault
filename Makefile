@@ -51,13 +51,16 @@ demo-owntracks:
 		-d '{"_type":"location","topic":"owntracks/me/iphone","tid":"ip","tst":1700000000,"lat":35.6812,"lon":139.7671,"t":"u","acc":10}'
 
 demo-owntracks-edge:
-	curl -sS -X POST "http://127.0.0.1:54421/functions/v1/owntracks-ingest" \
-		-H "Authorization: Bearer $${INGEST_BEARER_TOKEN:-change-me}" \
-		-H "Content-Type: application/json" \
-		-d '{"_type":"location","topic":"owntracks/me/iphone","tid":"ip","tst":1700000000,"lat":35.6812,"lon":139.7671,"t":"u","acc":10}'
+	bash -lc 'set -a; [ -f .env ] && . ./.env; set +a; \
+	  curl -sS -X POST "http://127.0.0.1:54421/functions/v1/owntracks-ingest" \
+	    -H "Authorization: Bearer $${INGEST_BEARER_TOKEN:-change-me}" \
+	    -H "Content-Type: application/json" \
+	    -d "{\"_type\":\"location\",\"topic\":\"owntracks/me/iphone\",\"tid\":\"ip\",\"tst\":1700000000,\"lat\":35.6812,\"lon\":139.7671,\"t\":\"u\",\"acc\":10}"'
 
 demo-materialize-edge:
-	curl -sS -X POST "http://127.0.0.1:54421/functions/v1/owntracks-materialize" \
-		-H "Authorization: Bearer $${SUPABASE_SERVICE_ROLE_KEY}" \
-		-H "Content-Type: application/json" \
-		-d '{}'
+	bash -lc 'set -a; [ -f .env ] && . ./.env; set +a; \
+	  test -n "$$SUPABASE_SERVICE_ROLE_KEY" || { echo "Missing SUPABASE_SERVICE_ROLE_KEY in .env (see: npx supabase status -o json)" >&2; exit 1; }; \
+	  curl -sS -X POST "http://127.0.0.1:54421/functions/v1/owntracks-materialize" \
+	    -H "Authorization: Bearer $$SUPABASE_SERVICE_ROLE_KEY" \
+	    -H "Content-Type: application/json" \
+	    -d "{}"'
