@@ -7,7 +7,7 @@
  */
 import dotenv from "dotenv";
 import { detectProjectRef } from "./lib/supabase-detect.ts";
-import { parsePostgresUrl } from "./lib/dbt-connection.ts";
+import { dbtRunnerConnectionFromPostgresPooler } from "./lib/dbt-connection.ts";
 import { buildDbtRunnerPoolerUrl, resolveDbPushUrl } from "./lib/supabase-pooler-url.ts";
 import { readVaultSecret } from "./lib/vault-read.ts";
 
@@ -23,7 +23,7 @@ async function main() {
   const postgresPoolerUrl = await resolveDbPushUrl(projectRef, process.env.SUPABASE_DB_PASSWORD);
   const dbtPassword = readVaultSecret(postgresPoolerUrl, "dbt_runner_password");
   const dbtUrl = buildDbtRunnerPoolerUrl(projectRef, postgresPoolerUrl, dbtPassword);
-  parsePostgresUrl(dbtUrl); // validate
+  dbtRunnerConnectionFromPostgresPooler(projectRef, postgresPoolerUrl, dbtPassword); // validate fields
   process.stdout.write(dbtUrl);
 }
 
