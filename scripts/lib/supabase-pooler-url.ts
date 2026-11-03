@@ -49,18 +49,33 @@ function pickSessionPooler(configs: PoolerConfig[]): PoolerConfig | undefined {
  * After `supabase link`, the CLI writes `supabase/.temp/pooler-url` (same source as link uses).
  * Avoids a separate Management API call and does not need `database_pooling_config_read` on the PAT.
  */
-export function readLinkedPoolerPushUrl(password: string): string | null {
+export function readLinkedPoolerPushUrl(projectRef: string, password: string): string | null {
   const file = path.join(process.cwd(), LINKED_POOLER_URL_FILE);
   if (!fs.existsSync(file)) return null;
 
-  let raw = fs.readFileSync(file, "utf8").trim();
+  const raw = fs.readFileSync(file, "utf8").trim();
   if (!raw.includes("pooler.supabase.com")) return null;
 
-  raw = raw.replaceAll("[YOUR-PASSWORD]", encodePostgresPassword(password));
-  // CLI template is often transaction mode (:6543); prefer session (:5432) for migrations.
-  raw = raw.replace(".pooler.supabase.com:6543/", ".pooler.supabase.com:5432/");
+  // CLI stores a template; newer versions may omit :password@ entirely (not only [YOUR-PASSWORD]).
+  const forParse = raw.replaceAll("[YOUR-PASSWORD]", "placeholder");
+  let parsed: URL;
+  try {
+    parsed = new URL(forParse);
+  } catch {
+    return null;
+  }
 
-  return ensureSslMode(raw);
+  if (!parsed.username) {
+    parsed.username = `postgres.${projectRef}`;
+  }
+  parsed.password = password;
+
+  // CLI template is often transaction mode (:6543); prefer session (:5432) for migrations.
+  if (parsed.port === "6543") {
+    parsed.port = "5432";
+  }
+
+  return ensureSslMode(parsed.toString());
 }
 
 /** Optional fallback when pooler-url file is missing (needs Connection Pooling → Read on the PAT). */
@@ -97,13 +112,21 @@ export async function fetchSessionPoolerPushUrl(
   return buildPoolerUrl(cfg, password);
 }
 
+function withPasswordFromEnv(connectionUrl: string, password: string): string {
+  const parsed = new URL(connectionUrl.replace("[YOUR-PASSWORD]", "placeholder"));
+  if (!parsed.password) {
+    parsed.password = password;
+  }
+  return ensureSslMode(parsed.toString());
+}
+
 export async function resolveDbPushUrl(projectRef: string, password: string): Promise<string> {
   const fromEnv = process.env.SUPABASE_DB_PUSH_URL?.trim();
   if (fromEnv) {
-    return ensureSslMode(fromEnv);
+    return withPasswordFromEnv(fromEnv, password);
   }
 
-  const fromLink = readLinkedPoolerPushUrl(password);
+  const fromLink = readLinkedPoolerPushUrl(projectRef, password);
   if (fromLink) {
     return fromLink;
   }
