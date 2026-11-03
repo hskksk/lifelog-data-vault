@@ -19,9 +19,6 @@ importers:
       '@lifelog/ingest-core':
         specifier: workspace:*
         version: link:../ingest-core
-      h3-js:
-        specifier: ^4.1.0
-        version: 4.5.0
       hono:
         specifier: ^4.7.0
         version: 4.13.13
@@ -52,7 +49,14 @@ importers:
         version: 3.2.7(@types/node@22.20.5)(tsx@4.23.15)(yaml@2.9.1)
 
   packages/ingest-core:
+    dependencies:
+      h3-js:
+        specifier: ^4.1.0
+        version: 4.5.0
     devDependencies:
+      '@types/node':
+        specifier: ^22.13.0
+        version: 22.20.5
       tsup:
         specifier: ^8.4.0
         version: 8.5.1(postcss@8.5.31)(tsx@4.23.15)(typescript@5.9.3)(yaml@2.9.1)

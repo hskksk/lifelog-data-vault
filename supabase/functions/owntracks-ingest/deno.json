@@ -1,6 +1,6 @@
 {
   "imports": {
-    "@lifelog/ingest-core": "../../../packages/ingest-core/dist/index.js",
+    "@lifelog/ingest-core": "../../../packages/ingest-core/dist/bronze.js",
     "@supabase/supabase-js": "npm:@supabase/supabase-js@2.49.8",
     "hono": "npm:hono@4.7.11"
   }

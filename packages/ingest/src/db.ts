@@ -1,7 +1,6 @@
 import pg from "pg";
 
-import type { OwnTracksLocation } from "./owntracks/parse.js";
-import { payloadHashdiff } from "./owntracks/parse.js";
+import { payloadHashdiff, type OwnTracksLocation } from "@lifelog/ingest-core";
 
 const { Pool } = pg;
 

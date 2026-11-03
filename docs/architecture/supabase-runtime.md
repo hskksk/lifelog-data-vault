@@ -132,7 +132,15 @@ supabase/functions/
 packages/ingest/               # ローカル dev 用 CLI（Storage エミュ / 直 POST テスト）— 任意
 ```
 
-ローカル開発: `supabase start` + `supabase functions serve owntracks-ingest` + curl。
+ローカル開発: `supabase start` + `supabase functions serve owntracks-ingest owntracks-materialize` + curl。materialize は `Authorization: Bearer <service_role>`。
+
+**Prod Cron 用 DB 設定（Dashboard SQL、Secret は DB にのみ）:**
+
+```sql
+alter database postgres set app.supabase_functions_url = 'https://<project-ref>.supabase.co/functions/v1';
+alter database postgres set app.supabase_service_role_key = '<service-role-jwt>';
+select pg_reload_conf();
+```
 
 ---
 
@@ -210,7 +218,7 @@ jobs:
 |-------|--------|
 | **S1** | `supabase/` 初期化、migrations（V001/V002 相当）、スキーマ非露出 |
 | **S2** | Edge `owntracks-ingest` + Storage Bronze + `ops.ingest_batch` |
-| **S3** | Edge `owntracks-materialize` + Cron |
+| **S3** | Edge `owntracks-materialize` + Cron（migration で pg_cron；prod は DB 設定 `app.supabase_functions_url` / `app.supabase_service_role_key`） |
 | **S4** | GitHub Actions `owntracks-dbt.yml`、Secrets ドキュメント |
 | **S5** | OwnTracks 実機接続、24h 監視（batch 0 件アラートは将来） |
 
