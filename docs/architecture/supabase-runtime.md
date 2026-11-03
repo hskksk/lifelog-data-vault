@@ -163,7 +163,7 @@ Cron は `public.invoke_owntracks_materialize()` が `https://{supabase_project_
 ### 6.1 接続
 
 - **GitHub Actions** `workflow_dispatch` のみ（`owntracks-dbt.yml`；cron は未設定。materialize は DB 側 **15 分** Cron）
-- **接続:** session pooler + ロール **`dbt_runner`**。パスワードは **Vault `dbt_runner_password`** → deploy / `ops.sync_dbt_runner_password_from_vault()` がロールに反映。CI は [resolve-dbt-db-url.ts](../../scripts/resolve-dbt-db-url.ts) が deploy と同じ pooler 解決 + Vault 読み取り（[dbt-ci-setup.md](../operations/dbt-ci-setup.md)）
+- **接続:** session pooler + ロール **`dbt_runner`**。パスワードは **Vault `dbt_runner_password`** → deploy / `ops.sync_dbt_runner_password_from_vault()` がロールに反映。CI（dbt **1.12**）は [resolve-dbt-connection.ts](../../scripts/resolve-dbt-connection.ts) が deploy と同じ pooler 解決 + Vault 読み取りし、field-based `profiles.yml` を生成（[dbt-ci-setup.md](../operations/dbt-ci-setup.md)）
 - **`SUPABASE_DB_URL` GitHub secret は不要**
 
 ### 6.2 ワークフロー（イメージ）
@@ -178,7 +178,7 @@ jobs:
       - run: cd packages/dbt && dbt build --select tag:owntracks
     env:
       DBT_PROFILES_DIR: .
-      # resolved in workflow via resolve-dbt-db-url.ts
+      # DBT_PG_* from resolve-dbt-connection.ts
       SUPABASE_DB_URL: ...
 ```
 
