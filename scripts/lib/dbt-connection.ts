@@ -32,6 +32,25 @@ export function parsePostgresUrl(connectionUrl: string): DbtPostgresConnection {
 }
 
 /** Build dbt_runner fields without round-tripping the Vault password through a URL string. */
+/** CI profiles.yml with literal credentials (avoid env_var + log leakage in GHA). */
+export function renderDbtCiProfilesYaml(conn: DbtPostgresConnection): string {
+  const q = (value: string) => JSON.stringify(value);
+  return `lifelog_vault:
+  target: ci
+  outputs:
+    ci:
+      type: postgres
+      host: ${q(conn.host)}
+      user: ${q(conn.user)}
+      password: ${q(conn.password)}
+      port: ${conn.port}
+      dbname: ${q(conn.dbname)}
+      sslmode: ${q(conn.sslmode)}
+      schema: staging
+      threads: 2
+`;
+}
+
 export function dbtRunnerConnectionFromPostgresPooler(
   projectRef: string,
   postgresPoolerUrl: string,
