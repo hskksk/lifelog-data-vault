@@ -7,7 +7,7 @@
  * resolved from SUPABASE_DB_PUSH_URL, `supabase/.temp/pooler-url` after link, or Management API.
  */
 import dotenv from "dotenv";
-import { execSync } from "node:child_process";
+import { execFileSync, execSync } from "node:child_process";
 import { detectProjectRef } from "./lib/supabase-detect.ts";
 import { resolveDbPushUrl } from "./lib/supabase-pooler-url.ts";
 
@@ -16,6 +16,12 @@ dotenv.config({ path: ".env" });
 function run(cmd: string) {
   console.log(`\n$ ${cmd}`);
   execSync(cmd, { stdio: "inherit", env: process.env });
+}
+
+/** Pass argv without shell so `--db-url` stays a parseable postgresql:// URL (do not encode the whole string). */
+function runSupabase(args: string[]) {
+  console.log(`\n$ supabase ${args.map((a) => (a.includes("://") ? "postgresql://…" : a)).join(" ")}`);
+  execFileSync("supabase", args, { stdio: "inherit", env: process.env });
 }
 
 async function main() {
@@ -33,7 +39,7 @@ async function main() {
 
   const pushUrl = await resolveDbPushUrl(projectRef, password);
   console.log("\n[db push] Using session pooler (IPv4) with sslmode=require");
-  run(`supabase db push --db-url ${encodeURIComponent(pushUrl)} --yes`);
+  runSupabase(["db", "push", "--db-url", pushUrl, "--yes"]);
 
   run(
     "supabase functions deploy owntracks-ingest owntracks-materialize --no-verify-jwt --yes",
