@@ -39,6 +39,4 @@ migration `ops.sync_dbt_runner_password_from_vault()` が Vault の値を `dbt_r
 
 Actions → **owntracks-dbt** → **Run workflow**。
 
-## 5. ローカル
-
 `make supabase-reset` の seed が Vault `dbt_runner_password` = `local-dbt-runner` を入れ sync する。`profiles.yml` の `supabase_dbt_runner` ターゲットを使う。

@@ -1,0 +1,3 @@
+# Pin dbt 1.9 (url: in profiles.yml). Unpinned pip + mise on PATH can pick dbt 1.13+.
+dbt-core==1.9.8
+dbt-postgres==1.9.1

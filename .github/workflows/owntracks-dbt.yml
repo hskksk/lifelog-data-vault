@@ -46,7 +46,15 @@ jobs:
           } >> "$GITHUB_OUTPUT"
 
       - name: Install dbt
-        run: pip install dbt-postgres~=1.9
+        run: pip install -r packages/dbt/requirements-ci.txt
+
+      - name: Use pip dbt on PATH (not mise / other dbt 1.13+)
+        run: echo "${{ env.pythonLocation }}/bin" >> "$GITHUB_PATH"
+
+      - name: Verify dbt version
+        run: |
+          which dbt
+          dbt --version | head -3
 
       - name: Configure dbt profile (CI)
         working-directory: packages/dbt

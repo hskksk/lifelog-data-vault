@@ -32,6 +32,8 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - run: pip install dbt-postgres~=1.9
+      - run: pip install -r packages/dbt/requirements-ci.txt
+      - run: echo "${{ env.pythonLocation }}/bin" >> "$GITHUB_PATH"
+      - run: dbt --version | head -3
       - run: cp packages/dbt/profiles.yml.example packages/dbt/profiles.yml
       - run: cd packages/dbt && dbt parse --profiles-dir .
