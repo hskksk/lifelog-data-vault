@@ -208,12 +208,12 @@ jobs:
 
 | Secret | 用途 |
 |--------|------|
-| `SUPABASE_ACCESS_TOKEN` | CLI + Management API（Account → Access Tokens）。スコープ付き PAT なら **Database Config → Read**（pooler 設定取得）と deploy 用 Read/Read-write（§7.1 の link / Edge 権限） |
+| `SUPABASE_ACCESS_TOKEN` | CLI（Account → Access Tokens）。deploy は link 後の **`supabase/.temp/pooler-url`** から pooler を読むため **Connection Pooling → Read は通常不要**（API フォールバック時のみ `database_pooling_config_read`。**Database Config → Read だけでは足りない**） |
 | `SUPABASE_PROJECT_REF` | プロジェクト ref |
 | `SUPABASE_DB_PASSWORD` | ホスト DB パスワード（pooler URL 組み立て・link 用） |
 | `INGEST_BEARER_TOKEN` | Edge ingest の Bearer（OwnTracks と同じ値） |
 
-**db push（IPv4）:** GitHub Actions は IPv6 direct に届かない。`deploy.ts` は Management API で **session pooler** を取得し `supabase db push --db-url …` する（TLS は **`sslmode=require`**。`ssl=true` ではない）。
+**db push（IPv4）:** GitHub Actions は IPv6 direct に届かない。`deploy.ts` は `supabase link` 直後の **`supabase/.temp/pooler-url`** から pooler URL を組み立て `supabase db push --db-url …` する（TLS は **`sslmode=require`**。`ssl=true` ではない）。
 
 **任意:** `SUPABASE_DB_PUSH_URL` — API 取得を使わない場合は Dashboard → Connect → **Session pooler** の接続文字列。`?sslmode=require` が無ければ deploy 側で付与。
 
