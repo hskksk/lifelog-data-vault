@@ -12,7 +12,7 @@ sources:
     enabled: false
   owntracks:
     enabled: false
-    # Public URL path (behind Cloudflare Tunnel): POST /ingest/owntracks
+    # Legacy Hono path (OCI/Tunnel). Supabase prod: see docs/operations/owntracks-ingest-setup.md
     http_path: /ingest/owntracks
     h3_resolution: 9
     materialize_interval_minutes: 15

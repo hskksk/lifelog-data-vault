@@ -94,15 +94,12 @@ bronze/owntracks/dt=YYYY-MM-DD/batch=<uuid>/_meta/batch.json
 |------|------|
 | ルート | `POST /functions/v1/owntracks-ingest`（プロジェクト URL） |
 | `config.toml` | `verify_jwt = false`（OwnTracks は Bearer のみ；JWT なし） |
-| 認証 | Header `Authorization: Bearer <INGEST_BEARER_TOKEN>`（Edge Secret） |
+| 認証 | `Authorization: Bearer <INGEST_BEARER_TOKEN>` または OwnTracks HTTP **Basic**（password = 同じ secret） |
 | 処理 | JSON 受理 → Storage Bronze → `ops.ingest_batch` insert |
 | 応答 | `202` / `{ batch_id, bronze_prefix }` |
 | タイムアウト | 軽量のためデフォルトで足りる想定 |
 
-**OwnTracks アプリ設定例**
-
-- URL: `https://<project-ref>.supabase.co/functions/v1/owntracks-ingest`
-- HTTP ヘッダ（アプリがサポートする場合）: `Authorization: Bearer …`
+**OwnTracks 端末設定:** [../operations/owntracks-ingest-setup.md](../operations/owntracks-ingest-setup.md)（URL + Identification Basic；Bearer 欄はアプリに無い）。
 
 **実装方針**
 

@@ -8,6 +8,7 @@ import { putBronzeJsonLocal } from "./bronze/local.js";
 import { putBronzeJsonR2 } from "./bronze/r2.js";
 import { getSettings } from "./config.js";
 import { createPool, registerBatch } from "./db.js";
+import { authorizeIngestRequest } from "./ingest-auth.js";
 
 export function createApp(): Hono {
   const app = new Hono();
@@ -18,7 +19,7 @@ export function createApp(): Hono {
     const settings = getSettings();
     if (settings.ingestBearerToken) {
       const auth = c.req.header("Authorization");
-      if (auth !== `Bearer ${settings.ingestBearerToken}`) {
+      if (!authorizeIngestRequest(auth, settings.ingestBearerToken)) {
         return c.json({ detail: "Unauthorized" }, 401);
       }
     }

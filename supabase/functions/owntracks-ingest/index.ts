@@ -3,6 +3,7 @@ import {
   newBatchMeta,
   planBronzeJsonWrite,
 } from "@lifelog/ingest-core";
+import { authorizeIngestRequest } from "@lifelog/ingest-auth";
 import { createAdminClient } from "@lifelog/supabase-admin";
 import { Hono } from "hono";
 
@@ -20,7 +21,7 @@ app.post("/", async (c) => {
     return c.json({ detail: "Ingest not configured" }, 503);
   }
   const auth = c.req.header("Authorization");
-  if (auth !== `Bearer ${ingestToken}`) {
+  if (!authorizeIngestRequest(auth, ingestToken)) {
     return c.json({ detail: "Unauthorized" }, 401);
   }
 

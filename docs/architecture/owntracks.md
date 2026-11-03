@@ -53,6 +53,10 @@ sequenceDiagram
 
 ## 5. 受信（ingest webhook）
 
+**本番（Supabase Edge）:** 端末の URL・Bearer・Identification の設定手順は [../operations/owntracks-ingest-setup.md](../operations/owntracks-ingest-setup.md)。エンドポイントは `POST https://<project-ref>.supabase.co/functions/v1/owntracks-ingest`（Legacy の `/ingest/owntracks` ではない）。
+
+**Legacy（自前ホスト + Tunnel）:** 以下は OCI / cloudflared 構成向け。
+
 ### 5.1 責務
 
 1. **認証**: `Authorization: Bearer <secret>`（または `X-Ingest-Token`）
