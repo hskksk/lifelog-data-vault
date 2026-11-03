@@ -35,18 +35,20 @@ jobs:
       - name: Link Supabase project
         run: supabase link --project-ref "${SUPABASE_PROJECT_REF}" --yes
 
-      - name: Resolve dbt session pooler URL (Vault dbt_runner_password)
-        id: dbt_db
-        run: |
-          url="$(pnpm exec tsx scripts/resolve-dbt-db-url.ts)"
-          {
-            echo "url<<EOF"
-            echo "$url"
-            echo "EOF"
-          } >> "$GITHUB_OUTPUT"
+      - name: Resolve dbt connection (Vault + session pooler)
+        id: dbt_conn
+        run: pnpm exec tsx scripts/resolve-dbt-connection.ts --format=github >> "$GITHUB_OUTPUT"
 
       - name: Install dbt
-        run: pip install dbt-postgres~=1.9
+        run: pip install -r packages/dbt/requirements-ci.txt
+
+      - name: Use pip dbt on PATH (not mise / other dbt)
+        run: echo "${{ env.pythonLocation }}/bin" >> "$GITHUB_PATH"
+
+      - name: Verify dbt version
+        run: |
+          which dbt
+          dbt --version | head -3
 
       - name: Configure dbt profile (CI)
         working-directory: packages/dbt
@@ -57,7 +59,12 @@ jobs:
             outputs:
               ci:
                 type: postgres
-                url: "{{ env_var('SUPABASE_DB_URL') }}"
+                host: "{{ env_var('DBT_PG_HOST') }}"
+                user: "{{ env_var('DBT_PG_USER') }}"
+                password: "{{ env_var('DBT_PG_PASSWORD') }}"
+                port: "{{ env_var('DBT_PG_PORT') }}"
+                dbname: "{{ env_var('DBT_PG_DBNAME') }}"
+                sslmode: "{{ env_var('DBT_PG_SSLMODE') }}"
                 schema: staging
                 threads: 2
           EOF
@@ -69,5 +76,10 @@ jobs:
       - name: dbt build tag:owntracks
         working-directory: packages/dbt
         env:
-          SUPABASE_DB_URL: ${{ steps.dbt_db.outputs.url }}
+          DBT_PG_HOST: ${{ steps.dbt_conn.outputs.host }}
+          DBT_PG_PORT: ${{ steps.dbt_conn.outputs.port }}
+          DBT_PG_USER: ${{ steps.dbt_conn.outputs.user }}
+          DBT_PG_PASSWORD: ${{ steps.dbt_conn.outputs.password }}
+          DBT_PG_DBNAME: ${{ steps.dbt_conn.outputs.dbname }}
+          DBT_PG_SSLMODE: ${{ steps.dbt_conn.outputs.sslmode }}
         run: dbt build --select tag:owntracks --profiles-dir .

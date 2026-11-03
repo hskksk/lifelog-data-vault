@@ -1,6 +1,6 @@
 # dbt GitHub Actions（本番）
 
-[`owntracks-dbt.yml`](../../.github/workflows/owntracks-dbt.yml) は **手動** `workflow_dispatch` のみ。接続 URL は **`SUPABASE_DB_URL` secret を置かない** — deploy と同じ [pooler-url.ts](../../scripts/lib/supabase-pooler-url.ts) で session pooler を組み立て、**Vault** の `dbt_runner_password` で `dbt_runner.<project-ref>` として接続する（[`resolve-dbt-db-url.ts`](../../scripts/resolve-dbt-db-url.ts)）。
+[`owntracks-dbt.yml`](../../.github/workflows/owntracks-dbt.yml) は **手動** `workflow_dispatch` のみ。**dbt 1.12 GA**（[`requirements-ci.txt`](../../packages/dbt/requirements-ci.txt)）では Postgres プロファイルに `url:` を使わない。CI は deploy と同じ [pooler-url.ts](../../scripts/lib/supabase-pooler-url.ts) で session pooler を組み立て、**Vault** の `dbt_runner_password` で `dbt_runner.<project-ref>` として接続し、[`resolve-dbt-connection.ts`](../../scripts/resolve-dbt-connection.ts) が `host` / `port` / `user` / `password` / `dbname` / `sslmode` を workflow に渡す（**`SUPABASE_DB_URL` secret は不要**）。デバッグ用に URL 一行が欲しいときだけ [`resolve-dbt-db-url.ts`](../../scripts/resolve-dbt-db-url.ts)。
 
 ## 1. 本番 Vault（1 回）
 
