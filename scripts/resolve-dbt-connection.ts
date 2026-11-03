@@ -12,18 +12,43 @@ import {
   type DbtPostgresConnection,
 } from "./lib/dbt-connection.ts";
 import { detectProjectRef } from "./lib/supabase-detect.ts";
-import { resolveDbPushUrl } from "./lib/supabase-pooler-url.ts";
+import { fetchSessionPoolerPushUrl, resolveDbPushUrl } from "./lib/supabase-pooler-url.ts";
 import { readVaultSecret } from "./lib/vault-read.ts";
 
 dotenv.config({ path: ".env" });
+
+function isPoolerReachabilityError(err: unknown): boolean {
+  const text = (err instanceof Error ? err.message : String(err)).toLowerCase();
+  return (
+    text.includes("econnrefused") ||
+    text.includes("sqlstate 08006") ||
+    text.includes("failed to connect to database") ||
+    text.includes("command failed: supabase db query")
+  );
+}
 
 async function resolveConnection(): Promise<DbtPostgresConnection> {
   if (!process.env.SUPABASE_DB_PASSWORD) {
     throw new Error("SUPABASE_DB_PASSWORD is required (postgres role, for Vault read via pooler).");
   }
   const projectRef = detectProjectRef();
-  const postgresPoolerUrl = await resolveDbPushUrl(projectRef, process.env.SUPABASE_DB_PASSWORD);
-  const dbtPassword = readVaultSecret(postgresPoolerUrl, "dbt_runner_password");
+  const postgresPassword = process.env.SUPABASE_DB_PASSWORD;
+  let postgresPoolerUrl = await resolveDbPushUrl(projectRef, postgresPassword);
+
+  let dbtPassword: string;
+  try {
+    dbtPassword = await readVaultSecret(postgresPoolerUrl, "dbt_runner_password");
+  } catch (err) {
+    if (process.env.SUPABASE_DB_PUSH_URL?.trim() || !isPoolerReachabilityError(err)) {
+      throw err;
+    }
+    console.warn(
+      "Linked pooler URL could not reach Postgres for Vault read; retrying with Management API pooler config.",
+    );
+    postgresPoolerUrl = await fetchSessionPoolerPushUrl(projectRef, postgresPassword);
+    dbtPassword = await readVaultSecret(postgresPoolerUrl, "dbt_runner_password");
+  }
+
   return dbtRunnerConnectionFromPostgresPooler(projectRef, postgresPoolerUrl, dbtPassword);
 }
 

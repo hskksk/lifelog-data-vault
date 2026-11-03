@@ -21,7 +21,7 @@ async function main() {
 
   const projectRef = detectProjectRef();
   const postgresPoolerUrl = await resolveDbPushUrl(projectRef, process.env.SUPABASE_DB_PASSWORD);
-  const dbtPassword = readVaultSecret(postgresPoolerUrl, "dbt_runner_password");
+  const dbtPassword = await readVaultSecret(postgresPoolerUrl, "dbt_runner_password");
   const dbtUrl = buildDbtRunnerPoolerUrl(projectRef, postgresPoolerUrl, dbtPassword);
   dbtRunnerConnectionFromPostgresPooler(projectRef, postgresPoolerUrl, dbtPassword); // validate fields
   process.stdout.write(dbtUrl);
