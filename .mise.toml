@@ -1,0 +1,4 @@
+[tools]
+node = "22"
+pnpm = "9.14.0"
+supabase = "3.0.0"

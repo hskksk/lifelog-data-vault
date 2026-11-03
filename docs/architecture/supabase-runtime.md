@@ -200,7 +200,7 @@ jobs:
 
 ### 7.1 GitHub Actions deploy（Supabase）
 
-[`deploy.yml`](../../.github/workflows/deploy.yml) は [hskksk/podcaster](https://github.com/hskksk/podcaster) の Deploy ワークフローと同型: `scripts/deploy.ts` が link → `secrets set` → **`db push`** → **`functions deploy`**。
+[`deploy.yml`](../../.github/workflows/deploy.yml) は [hskksk/podcaster](https://github.com/hskksk/podcaster) の Deploy と同型（`setup-mise` → `setup-supabase-cli` → `pnpm deploy`、Secrets 3 種 + Edge 用 `.env`）。`scripts/deploy.ts` も link → `secrets set` → **`db push`** → **`functions deploy`** の順。**差分:** GitHub Actions は IPv4 のみのため、db push だけ [supabase-pooler-url.ts](../../scripts/lib/supabase-pooler-url.ts) 経由で session pooler + `sslmode=require`（podcaster 本家は素の `supabase db push`）。
 
 **トリガ:** `main` へ push（`supabase/**`, `packages/ingest-core/**`, deploy スクリプト等）または `workflow_dispatch`。
 
