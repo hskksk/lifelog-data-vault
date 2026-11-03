@@ -1,22 +1,39 @@
+import { bronzeStorageObjectPath } from "@lifelog/bronze";
+import { type PersonMapFile, resolvePersonId } from "@lifelog/person-map";
 import {
-  bronzeStorageObjectPath,
   type OwnTracksPayload,
   parseLocationPayload,
   payloadHashdiff,
-  type PersonMapFile,
-  resolvePersonId,
-} from "@lifelog/ingest-core";
+} from "@lifelog/parse";
+import { createClient } from "@supabase/supabase-js";
 import { Hono } from "hono";
 import YAML from "yaml";
-
-import {
-  authorizeInternalRequest,
-  createServiceClient,
-} from "../_shared/service-client.ts";
 
 const BRONZE_BUCKET = "bronze";
 const RECORD_SOURCE = "owntracks";
 const FUNCTION_NAME = "owntracks-materialize";
+
+function requireEnv(name: string): string {
+  const value = Deno.env.get(name);
+  if (!value) throw new Error(`Missing ${name}`);
+  return value;
+}
+
+function createServiceClient() {
+  return createClient(requireEnv("SUPABASE_URL"), requireEnv("SUPABASE_SERVICE_ROLE_KEY"), {
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
+}
+
+function authorizeInternalRequest(authHeader: string | undefined): boolean {
+  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  const materializeToken = Deno.env.get("MATERIALIZE_BEARER_TOKEN");
+  if (!authHeader?.startsWith("Bearer ")) return false;
+  const token = authHeader.slice("Bearer ".length);
+  if (serviceKey && token === serviceKey) return true;
+  if (materializeToken && token === materializeToken) return true;
+  return false;
+}
 
 function intEnv(name: string, fallback: number): number {
   const raw = Deno.env.get(name);
@@ -113,11 +130,6 @@ app.post("/", async (c) => {
         p_batch_id: batchId,
         p_bronze_key: bronzeKey,
         p_received_at: receivedAt,
-        p_location_event_id: row.locationEventId,
-        p_topic: row.topic,
-        p_person_id: row.personId,
-        p_tid: row.tid,
-        p_tst: row.tst.toISOString(),
         p_lat: row.lat,
         p_lon: row.lon,
         p_h3_index_r9: row.h3IndexR9,
@@ -130,6 +142,11 @@ app.post("/", async (c) => {
         p_motion_activities: row.motionActivities,
         p_payload: row.payload,
         p_hashdiff: payloadHashdiff(row.payload),
+        p_location_event_id: row.locationEventId,
+        p_topic: row.topic,
+        p_person_id: row.personId,
+        p_tid: row.tid,
+        p_tst: row.tst.toISOString(),
       });
       if (insertError) {
         console.error("insert_owntracks_inbox", insertError);

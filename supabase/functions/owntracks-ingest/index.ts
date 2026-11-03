@@ -21,7 +21,6 @@ function createServiceClient() {
   });
 }
 
-// Edge strips /functions/v1; Hono still sees the function name as a path prefix.
 const FUNCTION_NAME = "owntracks-ingest";
 const app = new Hono().basePath(`/${FUNCTION_NAME}`);
 
