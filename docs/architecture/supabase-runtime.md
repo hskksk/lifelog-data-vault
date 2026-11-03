@@ -30,7 +30,7 @@ flowchart TB
   PG[(Supabase Postgres)]
   CRON[Supabase Cron]
   EF_MAT[Edge: owntracks-materialize]
-  GH[GitHub Actions schedule]
+  GH[GitHub Actions dbt manual]
   DBT[dbt build tag:owntracks]
 
   OT -->|POST JSON| EF_IN
@@ -161,7 +161,7 @@ select pg_reload_conf();
 
 ### 6.1 接続
 
-- **GitHub Actions** `schedule`（例: 毎時 `:05`、materialize の 15 分 Cron の後）
+- **GitHub Actions** `workflow_dispatch` のみ（`owntracks-dbt.yml`；cron は未設定。materialize は DB 側 **15 分** Cron）
 - DB URL: **Session pooler** または **direct**（IPv6 add-on または pooler；dbt は prepared statement に注意 → [Supabase connecting guide](https://supabase.com/docs/guides/database/connecting-to-postgres) に従い **Session mode** を選ぶ）
 - 専用 DB ロール `dbt_runner`（`staging`/`raw_vault`/`mart` への DML/DDL 権限）を migration で作成し、URL は GitHub Secrets のみ
 
@@ -170,7 +170,7 @@ select pg_reload_conf();
 ```yaml
 # .github/workflows/owntracks-dbt.yml
 on:
-  schedule: [{ cron: "5 * * * *" }]
+  workflow_dispatch:
 jobs:
   dbt:
     steps:
@@ -200,6 +200,23 @@ jobs:
 
 **OCI / cloudflared:** 本設計では **プロダクション対象外**。README に「Supabase ランタイム」を正と記載。
 
+### 7.1 `supabase/seed.sql` と本番
+
+**結論:** 通常の本番デプロイ（`supabase db push`）では **`seed.sql` は自動実行されない**。マイグレーションだけがリモートに適用される。
+
+| 操作 | seed が走るか |
+|------|----------------|
+| ローカル `supabase db reset` / `make supabase-reset` | **はい**（`config.toml` の `[db.seed]` が有効） |
+| 本番 **`supabase db push`**（リンク済みリモート） | **いいえ**（デフォルト） |
+| 本リポジトリの GitHub Actions | **いいえ**（`db push` / seed を呼ばない） |
+| `supabase db push --include-seed --remote` | **はい**（明示オプション；[CLI ドキュメント](https://supabase.com/docs/reference/cli/supabase-db-push) は本番では使わない旨を記載） |
+| `supabase db reset --remote` | **はい**（DB 全消し＋migration＋seed。`--no-seed` で seed だけ省略） |
+| Supabase **Branching** の Preview デプロイ | プロジェクト設定で Seed ステップを **有効にした場合のみ**（本番 main とは別経路） |
+
+`seed.sql` の内容は **`dbt_runner` にローカル専用パスワード `local-dbt-runner` を設定するだけ**。本番では migration でロール作成後、Dashboard SQL で別パスワードを設定する（README S4 手順）。
+
+参照: [Seeding your database](https://supabase.com/docs/guides/local-development/seeding-your-database)（seed は主にローカル reset 用）、[supabase/seed.sql](../../supabase/seed.sql) 先頭コメント。
+
 ---
 
 ## 8. セキュリティチェックリスト
@@ -208,7 +225,7 @@ jobs:
 - [x] Storage bucket `bronze`: private、signed URL 不要（Functions のみアクセス） — S1 migration
 - [x] スキーマを API から隔離 + RLS enabled — S1 `config.toml` + migrations
 - [ ] service_role をクライアント（OwnTracks）に渡さない
-- [ ] GitHub Secret の DB URL は `dbt_runner` 専用ユーザー
+- [x] GitHub Secret の DB URL は `dbt_runner` 専用ユーザー — migration + README
 
 ---
 
@@ -219,7 +236,7 @@ jobs:
 | **S1** | `supabase/` 初期化、migrations（V001/V002 相当）、スキーマ非露出 |
 | **S2** | Edge `owntracks-ingest` + Storage Bronze + `ops.ingest_batch` |
 | **S3** | Edge `owntracks-materialize` + Cron（migration で pg_cron；prod は DB 設定 `app.supabase_functions_url` / `app.supabase_service_role_key`） |
-| **S4** | GitHub Actions `owntracks-dbt.yml`、Secrets ドキュメント |
+| **S4** | GitHub Actions `owntracks-dbt.yml`、`dbt_runner` migration、Secrets ドキュメント |
 | **S5** | OwnTracks 実機接続、24h 監視（batch 0 件アラートは将来） |
 
 **リポジトリから削除・更新:** `deploy/oci/systemd/*` は「レガシー / 自前ホスト用」として archive または README 注記。`docs/architecture/owntracks.md` の Tunnel / OCI 節を「Supabase 版は [supabase-runtime.md](./supabase-runtime.md)」へ誘導。
@@ -240,6 +257,6 @@ Free tier 内で開始し、容量アラートで Supabase Dashboard を見る�
 
 1. **materialize の 1 実行あたり batch 上限**（デフォルト 20 でよいか）
 2. **`person_map` の配布**（Edge Secret JSON vs Storage `config/person_map.yml`）
-3. **dbt Cron**（毎時 vs materialize 後 5 分 vs 日次）
+3. **dbt Cron**（未決 — 現状は手動 `workflow_dispatch` のみ）
 
-デフォルト提案: batch 上限 **20**、person_map **Storage に sync**、dbt **毎時 :05 UTC**。
+デフォルト提案: batch 上限 **20**、person_map **Storage に sync**、dbt **手動**（将来毎時 :05 UTC 等を検討）。

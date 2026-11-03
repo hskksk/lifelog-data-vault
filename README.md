@@ -48,6 +48,33 @@ make demo-materialize-edge   # sources .env for curl; Bearer must match Edge env
 
 Or serve both functions: `make supabase-functions-serve`. Production Cron (`*/15`) is defined in migrations when `app.supabase_functions_url` and `app.supabase_service_role_key` database settings are set.
 
+### dbt (S4 — GitHub Actions)
+
+Run [`.github/workflows/owntracks-dbt.yml`](.github/workflows/owntracks-dbt.yml) manually (**Actions → owntracks-dbt → Run workflow**). It runs `dbt build --select tag:owntracks` (no cron until we turn scheduling back on).
+
+**Production setup**
+
+1. Apply migrations only: `supabase link` then `supabase db push`. **`supabase/seed.sql` does not run on push** (it runs only on local `supabase db reset`). Do not use `db push --include-seed --remote` on production. Details: [docs/architecture/supabase-runtime.md §7.1](docs/architecture/supabase-runtime.md#71-supabaseseedsql-と本番).
+2. Role `dbt_runner` is created without a password in SQL. Supabase Dashboard → SQL: `alter role dbt_runner password '<strong-password>';`
+3. Build **session mode** pooler URL for `dbt_runner` ([connecting guide](https://supabase.com/docs/guides/database/connecting-to-postgres)).
+4. GitHub repo → Settings → Secrets → **`SUPABASE_DB_URL`** = full `postgresql://dbt_runner:...@...pooler.../postgres` URL (sslmode as required).
+
+**Install dbt (local)** — match CI (`dbt-postgres` **1.9** on Python). Homebrew `dbt-core` **2.x** (`dbt-oss`) does not ship the Postgres adapter this project uses; prefer a venv:
+
+```bash
+python3 -m venv .venv-dbt && source .venv-dbt/bin/activate
+pip install "dbt-postgres~=1.9"
+dbt --version   # 1.9.x — ensure `which dbt` is the venv, not Homebrew
+```
+
+**Local dbt after `make supabase-reset`**
+
+```bash
+cp packages/dbt/profiles.yml.example packages/dbt/profiles.yml
+# target: supabase_local (postgres) or supabase_dbt_runner (seed sets password local-dbt-runner)
+cd packages/dbt && dbt deps && dbt build --select tag:owntracks --profiles-dir .
+```
+
 If startup still fails, stop cleanly and retry (migrations already applied are fine):
 
 ```bash

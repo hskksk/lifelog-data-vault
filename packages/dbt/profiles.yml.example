@@ -1,5 +1,7 @@
+# Copy to profiles.yml (gitignored). CI uses env SUPABASE_DB_URL — see .github/workflows/owntracks-dbt.yml
+
 lifelog_vault:
-  target: local
+  target: supabase_local
   outputs:
     local:
       type: postgres
@@ -8,5 +10,28 @@ lifelog_vault:
       password: lifelog
       port: 5432
       dbname: lifelog
+      schema: staging
+      threads: 2
+    supabase_local:
+      type: postgres
+      host: 127.0.0.1
+      user: postgres
+      password: postgres
+      port: 54422
+      dbname: postgres
+      schema: staging
+      threads: 2
+    supabase_dbt_runner:
+      type: postgres
+      host: 127.0.0.1
+      user: dbt_runner
+      password: local-dbt-runner
+      port: 54422
+      dbname: postgres
+      schema: staging
+      threads: 2
+    ci:
+      type: postgres
+      url: "{{ env_var('SUPABASE_DB_URL') }}"
       schema: staging
       threads: 2

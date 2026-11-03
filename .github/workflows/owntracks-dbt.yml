@@ -1,0 +1,46 @@
+name: owntracks-dbt
+
+on:
+  # Manual only until schedule is re-enabled (materialize Cron is */15 in DB).
+  workflow_dispatch:
+
+concurrency:
+  group: owntracks-dbt
+  cancel-in-progress: false
+
+jobs:
+  dbt:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dbt
+        run: pip install dbt-postgres~=1.9
+
+      - name: Configure dbt profile (CI)
+        working-directory: packages/dbt
+        run: |
+          cat > profiles.yml <<'EOF'
+          lifelog_vault:
+            target: ci
+            outputs:
+              ci:
+                type: postgres
+                url: "{{ env_var('SUPABASE_DB_URL') }}"
+                schema: staging
+                threads: 2
+          EOF
+
+      - name: dbt deps
+        working-directory: packages/dbt
+        run: dbt deps --profiles-dir .
+
+      - name: dbt build tag:owntracks
+        working-directory: packages/dbt
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: dbt build --select tag:owntracks --profiles-dir .
