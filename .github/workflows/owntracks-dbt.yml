@@ -36,8 +36,7 @@ jobs:
         run: supabase link --project-ref "${SUPABASE_PROJECT_REF}" --yes
 
       - name: Resolve dbt connection and write profiles.yml
-        working-directory: packages/dbt
-        run: pnpm exec tsx ../../scripts/resolve-dbt-connection.ts --write-profiles profiles.yml
+        run: pnpm exec tsx scripts/resolve-dbt-connection.ts --write-profiles packages/dbt/profiles.yml
 
       - name: Install dbt
         run: pip install -r packages/dbt/requirements-ci.txt
