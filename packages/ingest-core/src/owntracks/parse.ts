@@ -1,4 +1,4 @@
-import { createHash } from "node:crypto"; // bundled for Edge via tsup platform node
+import { createHash } from "node:crypto";
 import { latLngToCell } from "h3-js";
 
 export type OwnTracksPayload = Record<string, unknown>;

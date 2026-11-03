@@ -1,5 +1,5 @@
-import { type BatchMeta, batchMetaJson } from "./batch.js";
-import { bronzePrefix } from "./paths.js";
+import { type BatchMeta, batchMetaJson } from "./batch";
+import { bronzePrefix } from "./paths";
 
 /** Supabase Storage bucket id is `bronze`; object path omits that prefix. */
 export function bronzeStorageObjectPath(storageKey: string): string {

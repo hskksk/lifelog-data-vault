@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { locationEventId, parseLocationPayload } from "../src/owntracks/parse.js";
+import { locationEventId, parseLocationPayload } from "../src/owntracks/parse";
 
 describe("parseLocationPayload", () => {
   it("computes stable event id and h3", () => {

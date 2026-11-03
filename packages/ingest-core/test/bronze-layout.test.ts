@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { newBatchMeta, planBronzeJsonWrite } from "../src/index.js";
+import { newBatchMeta, planBronzeJsonWrite } from "../src/index";
 
 describe("planBronzeJsonWrite", () => {
   it("builds data and meta keys under bronze prefix", () => {
