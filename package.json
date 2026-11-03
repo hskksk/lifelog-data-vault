@@ -5,6 +5,11 @@
   "scripts": {
     "typecheck": "pnpm --filter @lifelog/ingest-core typecheck && pnpm --filter @lifelog/ingest typecheck",
     "test": "pnpm --filter @lifelog/ingest-core test && pnpm --filter @lifelog/ingest test",
-    "ingest": "pnpm --filter @lifelog/ingest exec lifelog-ingest"
+    "ingest": "pnpm --filter @lifelog/ingest exec lifelog-ingest",
+    "deploy": "tsx scripts/deploy.ts"
+  },
+  "devDependencies": {
+    "dotenv": "^16.4.7",
+    "tsx": "^4.19.4"
   }
 }
