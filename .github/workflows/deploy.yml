@@ -24,6 +24,8 @@ jobs:
       SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
       SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
       SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+      # Optional: session pooler URL (postgres user) if --linked still hits IPv6 on the runner
+      SUPABASE_DB_PUSH_URL: ${{ secrets.SUPABASE_DB_PUSH_URL }}
 
     steps:
       - uses: actions/checkout@v4

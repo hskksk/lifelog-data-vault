@@ -210,8 +210,10 @@ jobs:
 |--------|------|
 | `SUPABASE_ACCESS_TOKEN` | CLI ログイン（Dashboard → Account → Access Tokens） |
 | `SUPABASE_PROJECT_REF` | プロジェクト ref |
-| `SUPABASE_DB_PASSWORD` | `supabase link` / migration push 用 DB パスワード |
+| `SUPABASE_DB_PASSWORD` | `supabase link` / `db push --linked` 用 DB パスワード |
 | `INGEST_BEARER_TOKEN` | Edge ingest の Bearer（OwnTracks と同じ値） |
+
+**任意:** `SUPABASE_DB_PUSH_URL` — GitHub Actions は IPv4 のみのため、`db push` が `IPv6 is not supported` になる場合は Dashboard → Database → **Session pooler** の **postgres** 接続文字列（`*.pooler.supabase.com`）を Secret に設定。`scripts/deploy.ts` は `--db-url` で使う。
 
 **任意:** `PERSON_MAP_YAML` — materialize が Storage の `config/person_map.yml` の代わりに使う場合。
 
