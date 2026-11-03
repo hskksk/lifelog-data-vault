@@ -39,6 +39,8 @@ migration `ops.sync_dbt_runner_password_from_vault()` が Vault の値を `dbt_r
 
 Actions → **owntracks-dbt** → **Run workflow**。
 
+**Pooler / Vault 読み取りで `econnrefused` / SQLSTATE `08006`:** Supavisor が裏の Postgres に一時的に繋がれない状態（再起動・スケール・プロジェクト一時停止など）。Dashboard でプロジェクトが **Active** か確認し、数分後に workflow を再実行。CI は Vault 用 `supabase db query` にリトライと Management API pooler へのフォールバックを入れている。
+
 ## 5. ローカル
 
 `make supabase-reset` の seed が Vault `dbt_runner_password` = `local-dbt-runner` を入れ sync する。`profiles.yml` の `supabase_dbt_runner` ターゲットを使う。
