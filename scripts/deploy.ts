@@ -32,7 +32,7 @@ function escapeSqlLiteral(value: string): string {
 
 function runSql(label: string, sql: string, dbUrl: string) {
   console.log(`\n[sql] ${label}`);
-  execFileSync("supabase", ["db", "query", "--db-url", dbUrl], {
+  execFileSync("supabase", ["db", "query", "--db-url", dbUrl, "--yes"], {
     input: sql,
     stdio: ["pipe", "inherit", "inherit"],
     env: process.env,
