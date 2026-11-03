@@ -35,12 +35,9 @@ jobs:
       - name: Link Supabase project
         run: supabase link --project-ref "${SUPABASE_PROJECT_REF}" --yes
 
-      - name: Resolve dbt connection (Vault + session pooler)
-        id: dbt_conn
-        run: pnpm exec tsx scripts/resolve-dbt-connection.ts --format=github >> "$GITHUB_OUTPUT"
-
-      - name: Mask dbt_runner password in logs
-        run: echo "::add-mask::${{ steps.dbt_conn.outputs.password }}"
+      - name: Resolve dbt connection and write profiles.yml
+        working-directory: packages/dbt
+        run: pnpm exec tsx ../../scripts/resolve-dbt-connection.ts --write-profiles profiles.yml
 
       - name: Install dbt
         run: pip install -r packages/dbt/requirements-ci.txt
@@ -53,36 +50,10 @@ jobs:
           which dbt
           dbt --version | head -3
 
-      - name: Configure dbt profile (CI)
-        working-directory: packages/dbt
-        run: |
-          cat > profiles.yml <<'EOF'
-          lifelog_vault:
-            target: ci
-            outputs:
-              ci:
-                type: postgres
-                host: "{{ env_var('DBT_PG_HOST') }}"
-                user: "{{ env_var('DBT_PG_USER') }}"
-                password: "{{ env_var('DBT_PG_PASSWORD') }}"
-                port: "{{ env_var('DBT_PG_PORT') | int }}"
-                dbname: "{{ env_var('DBT_PG_DBNAME') }}"
-                sslmode: "{{ env_var('DBT_PG_SSLMODE') }}"
-                schema: staging
-                threads: 2
-          EOF
-
       - name: dbt deps
         working-directory: packages/dbt
         run: dbt deps --profiles-dir .
 
       - name: dbt build tag:owntracks
         working-directory: packages/dbt
-        env:
-          DBT_PG_HOST: ${{ steps.dbt_conn.outputs.host }}
-          DBT_PG_PORT: ${{ steps.dbt_conn.outputs.port }}
-          DBT_PG_USER: ${{ steps.dbt_conn.outputs.user }}
-          DBT_PG_PASSWORD: ${{ steps.dbt_conn.outputs.password }}
-          DBT_PG_DBNAME: ${{ steps.dbt_conn.outputs.dbname }}
-          DBT_PG_SSLMODE: ${{ steps.dbt_conn.outputs.sslmode }}
-        run: dbt build --select tag:owntracks --profiles-dir .
+        run: dbt build --select tag:owntracks --profiles-dir . --target ci

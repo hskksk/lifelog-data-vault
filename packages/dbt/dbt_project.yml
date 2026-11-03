@@ -8,8 +8,10 @@ macro-paths: ["macros"]
 test-paths: ["tests"]
 seed-paths: ["seeds"]
 
+# Schemas are created in supabase/migrations (dbt_runner has no CREATE on database postgres).
 models:
   lifelog_vault:
+    +create_schema: false
     staging:
       +schema: staging
     raw_vault:
