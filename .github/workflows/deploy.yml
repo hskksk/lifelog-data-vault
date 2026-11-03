@@ -32,10 +32,6 @@ jobs:
 
       - uses: hskksk/gh-actions/actions/setup-mise@v1
 
-      - uses: pnpm/action-setup@v4
-        with:
-          version: 9.14.0
-
       - run: pnpm install --frozen-lockfile
 
       - run: pnpm --filter @lifelog/ingest-core build
