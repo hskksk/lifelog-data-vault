@@ -1,9 +1,7 @@
 name: owntracks-dbt
 
 on:
-  schedule:
-    # UTC :05 — after 15-minute materialize cron
-    - cron: "5 * * * *"
+  # Manual only until schedule is re-enabled (materialize Cron is */15 in DB).
   workflow_dispatch:
 
 concurrency:

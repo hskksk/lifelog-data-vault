@@ -30,7 +30,7 @@ flowchart TB
   PG[(Supabase Postgres)]
   CRON[Supabase Cron]
   EF_MAT[Edge: owntracks-materialize]
-  GH[GitHub Actions schedule]
+  GH[GitHub Actions dbt manual]
   DBT[dbt build tag:owntracks]
 
   OT -->|POST JSON| EF_IN
@@ -161,7 +161,7 @@ select pg_reload_conf();
 
 ### 6.1 接続
 
-- **GitHub Actions** `schedule`（例: 毎時 `:05`、materialize の 15 分 Cron の後）
+- **GitHub Actions** `workflow_dispatch` のみ（`owntracks-dbt.yml`；cron は未設定。materialize は DB 側 **15 分** Cron）
 - DB URL: **Session pooler** または **direct**（IPv6 add-on または pooler；dbt は prepared statement に注意 → [Supabase connecting guide](https://supabase.com/docs/guides/database/connecting-to-postgres) に従い **Session mode** を選ぶ）
 - 専用 DB ロール `dbt_runner`（`staging`/`raw_vault`/`mart` への DML/DDL 権限）を migration で作成し、URL は GitHub Secrets のみ
 
@@ -170,7 +170,7 @@ select pg_reload_conf();
 ```yaml
 # .github/workflows/owntracks-dbt.yml
 on:
-  schedule: [{ cron: "5 * * * *" }]
+  workflow_dispatch:
 jobs:
   dbt:
     steps:
@@ -257,6 +257,6 @@ Free tier 内で開始し、容量アラートで Supabase Dashboard を見る�
 
 1. **materialize の 1 実行あたり batch 上限**（デフォルト 20 でよいか）
 2. **`person_map` の配布**（Edge Secret JSON vs Storage `config/person_map.yml`）
-3. **dbt Cron**（毎時 vs materialize 後 5 分 vs 日次）
+3. **dbt Cron**（未決 — 現状は手動 `workflow_dispatch` のみ）
 
-デフォルト提案: batch 上限 **20**、person_map **Storage に sync**、dbt **毎時 :05 UTC**。
+デフォルト提案: batch 上限 **20**、person_map **Storage に sync**、dbt **手動**（将来毎時 :05 UTC 等を検討）。

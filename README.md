@@ -50,7 +50,7 @@ Or serve both functions: `make supabase-functions-serve`. Production Cron (`*/15
 
 ### dbt (S4 — GitHub Actions)
 
-Scheduled workflow [`.github/workflows/owntracks-dbt.yml`](.github/workflows/owntracks-dbt.yml) runs `dbt build --select tag:owntracks` hourly at **UTC :05**.
+Run [`.github/workflows/owntracks-dbt.yml`](.github/workflows/owntracks-dbt.yml) manually (**Actions → owntracks-dbt → Run workflow**). It runs `dbt build --select tag:owntracks` (no cron until we turn scheduling back on).
 
 **Production setup**
 
