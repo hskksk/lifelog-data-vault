@@ -1,10 +1,7 @@
 import { readFileSync } from "node:fs";
-import YAML from "yaml";
 
-type PersonMapFile = {
-  default_person_id?: string;
-  users?: Record<string, string>;
-};
+import { type PersonMapFile, resolvePersonId as resolveFromMap } from "@lifelog/ingest-core";
+import YAML from "yaml";
 
 export function resolvePersonId(topic: string, mapPath: string): string {
   let data: PersonMapFile = {};
@@ -14,13 +11,5 @@ export function resolvePersonId(topic: string, mapPath: string): string {
   } catch {
     /* use defaults */
   }
-
-  const defaultId = data.default_person_id ?? "me";
-  const users = data.users ?? {};
-  const parts = topic.replace(/^\/+|\/+$/g, "").split("/");
-  if (parts.length >= 2 && parts[0] === "owntracks") {
-    const userSlug = parts[1];
-    if (userSlug && users[userSlug]) return users[userSlug];
-  }
-  return defaultId;
+  return resolveFromMap(topic, data);
 }

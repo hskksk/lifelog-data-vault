@@ -40,6 +40,14 @@ make demo-owntracks-edge        # POST .../functions/v1/owntracks-ingest (Hono b
 
 If Edge returns **404**, the Hono routes likely omit `basePath('/owntracks-ingest')`. If **Storage/DB errors** appear after 404 is fixed, set `SUPABASE_URL` in `.env` to reach Kong from the Edge container (often `http://host.docker.internal:54421` on Docker Desktop Mac, not `127.0.0.1`).
 
+**Materialize (S3):** after ingest, run Bronze → inbox staging:
+
+```bash
+make demo-materialize-edge   # uses SUPABASE_SERVICE_ROLE_KEY from .env
+```
+
+Or serve both functions: `make supabase-functions-serve`. Production Cron (`*/15`) is defined in migrations when `app.supabase_functions_url` and `app.supabase_service_role_key` database settings are set.
+
 If startup still fails, stop cleanly and retry (migrations already applied are fine):
 
 ```bash

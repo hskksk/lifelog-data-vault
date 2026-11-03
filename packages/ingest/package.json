@@ -9,14 +9,13 @@
   "scripts": {
     "build": "tsup src/cli.ts --format esm --dts --clean",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run",
+    "test": "vitest run --passWithNoTests",
     "dev": "tsx src/cli.ts"
   },
   "dependencies": {
     "@lifelog/ingest-core": "workspace:*",
     "@aws-sdk/client-s3": "^3.750.0",
     "@hono/node-server": "^1.14.0",
-    "h3-js": "^4.1.0",
     "hono": "^4.7.0",
     "pg": "^8.13.0",
     "yaml": "^2.7.0"

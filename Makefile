@@ -3,7 +3,7 @@ SUPABASE ?= npx --yes supabase@2.122.0
 # Services not needed for Bronze ingest / Vault (also avoids Realtime DB_HOST nxdomain).
 SUPABASE_START_EXCLUDE ?= logflare,vector,realtime
 
-.PHONY: up down migrate ingest-core-build supabase-start supabase-stop supabase-reset supabase-functions-serve dbt-parse dbt-owntracks lint test demo-owntracks demo-owntracks-edge
+.PHONY: up down migrate ingest-core-build supabase-start supabase-stop supabase-reset supabase-functions-serve dbt-parse dbt-owntracks lint test demo-owntracks demo-owntracks-edge demo-materialize-edge
 
 up:
 	$(COMPOSE) up -d
@@ -30,7 +30,7 @@ supabase-reset:
 	$(SUPABASE) db reset
 
 supabase-functions-serve: ingest-core-build
-	$(SUPABASE) functions serve owntracks-ingest --env-file .env --no-verify-jwt
+	$(SUPABASE) functions serve owntracks-ingest owntracks-materialize --env-file .env --no-verify-jwt
 
 dbt-parse:
 	cd packages/dbt && dbt parse --profiles-dir .
@@ -55,3 +55,9 @@ demo-owntracks-edge:
 		-H "Authorization: Bearer $${INGEST_BEARER_TOKEN:-change-me}" \
 		-H "Content-Type: application/json" \
 		-d '{"_type":"location","topic":"owntracks/me/iphone","tid":"ip","tst":1700000000,"lat":35.6812,"lon":139.7671,"t":"u","acc":10}'
+
+demo-materialize-edge:
+	curl -sS -X POST "http://127.0.0.1:54421/functions/v1/owntracks-materialize" \
+		-H "Authorization: Bearer $${SUPABASE_SERVICE_ROLE_KEY}" \
+		-H "Content-Type: application/json" \
+		-d '{}'

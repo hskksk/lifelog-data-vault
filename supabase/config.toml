@@ -423,3 +423,9 @@ enabled = true
 verify_jwt = false
 import_map = "./functions/owntracks-ingest/deno.json"
 entrypoint = "./functions/owntracks-ingest/index.ts"
+
+[functions.owntracks-materialize]
+enabled = true
+verify_jwt = false
+import_map = "./functions/owntracks-materialize/deno.json"
+entrypoint = "./functions/owntracks-materialize/index.ts"
