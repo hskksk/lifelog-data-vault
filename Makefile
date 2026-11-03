@@ -30,7 +30,7 @@ supabase-reset:
 	$(SUPABASE) db reset
 
 supabase-functions-serve: ingest-core-build
-	$(SUPABASE) functions serve owntracks-ingest --env-file .env
+	$(SUPABASE) functions serve owntracks-ingest --env-file .env --no-verify-jwt
 
 dbt-parse:
 	cd packages/dbt && dbt parse --profiles-dir .

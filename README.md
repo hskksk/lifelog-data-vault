@@ -35,8 +35,10 @@ Local API/DB ports are **5442x** (see `supabase/config.toml`) so this stack can 
 
 ```bash
 make supabase-functions-serve   # terminal 2; uses .env INGEST_BEARER_TOKEN
-make demo-owntracks-edge
+make demo-owntracks-edge        # POST .../functions/v1/owntracks-ingest (Hono basePath = function name)
 ```
+
+If Edge returns **404**, the Hono routes likely omit `basePath('/owntracks-ingest')`. If **Storage/DB errors** appear after 404 is fixed, set `SUPABASE_URL` in `.env` to reach Kong from the Edge container (often `http://host.docker.internal:54421` on Docker Desktop Mac, not `127.0.0.1`).
 
 If startup still fails, stop cleanly and retry (migrations already applied are fine):
 
