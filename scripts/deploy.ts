@@ -38,8 +38,8 @@ async function main() {
   // 1. Link project (idempotent). Password via env — same as podcaster CI + Supabase docs.
   run(`supabase link --project-ref ${projectRef} --yes`);
 
-  // 2. Push Edge secrets
-  run("supabase secrets set --env-file .env");
+  // 2. Push Edge secrets (Supabase CLI v3 requires --yes in CI)
+  runSupabase(["secrets", "set", "--env-file", ".env", "--yes"]);
 
   // 3. Apply migrations (no seed on push). Pooler URL for IPv4-only CI — see supabase-pooler-url.ts.
   const pushUrl = await resolveDbPushUrl(projectRef, password);
