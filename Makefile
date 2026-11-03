@@ -59,8 +59,8 @@ demo-owntracks-edge:
 
 demo-materialize-edge:
 	bash -lc 'set -a; [ -f .env ] && . ./.env; set +a; \
-	  test -n "$$SUPABASE_SERVICE_ROLE_KEY" || { echo "Missing SUPABASE_SERVICE_ROLE_KEY in .env (see: npx supabase status -o json)" >&2; exit 1; }; \
+	  test -n "$$SUPABASE_SECRET_KEY" || { echo "Missing SUPABASE_SECRET_KEY in .env (Dashboard secret key sb_secret_...)" >&2; exit 1; }; \
 	  curl -sS -X POST "http://127.0.0.1:54421/functions/v1/owntracks-materialize" \
-	    -H "Authorization: Bearer $$SUPABASE_SERVICE_ROLE_KEY" \
+	    -H "apikey: $$SUPABASE_SECRET_KEY" \
 	    -H "Content-Type: application/json" \
 	    -d "{}"'

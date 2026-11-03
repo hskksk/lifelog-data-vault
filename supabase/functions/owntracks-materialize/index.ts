@@ -5,35 +5,16 @@ import {
   parseLocationPayload,
   payloadHashdiff,
 } from "@lifelog/parse";
-import { createClient } from "@supabase/supabase-js";
+import {
+  authorizeMaterializeRequest,
+  createAdminClient,
+} from "@lifelog/supabase-admin";
 import { Hono } from "hono";
 import YAML from "yaml";
 
 const BRONZE_BUCKET = "bronze";
 const RECORD_SOURCE = "owntracks";
 const FUNCTION_NAME = "owntracks-materialize";
-
-function requireEnv(name: string): string {
-  const value = Deno.env.get(name);
-  if (!value) throw new Error(`Missing ${name}`);
-  return value;
-}
-
-function createServiceClient() {
-  return createClient(requireEnv("SUPABASE_URL"), requireEnv("SUPABASE_SERVICE_ROLE_KEY"), {
-    auth: { persistSession: false, autoRefreshToken: false },
-  });
-}
-
-function authorizeInternalRequest(authHeader: string | undefined): boolean {
-  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-  const materializeToken = Deno.env.get("MATERIALIZE_BEARER_TOKEN");
-  if (!authHeader?.startsWith("Bearer ")) return false;
-  const token = authHeader.slice("Bearer ".length);
-  if (serviceKey && token === serviceKey) return true;
-  if (materializeToken && token === materializeToken) return true;
-  return false;
-}
 
 function intEnv(name: string, fallback: number): number {
   const raw = Deno.env.get(name);
@@ -53,7 +34,7 @@ async function loadPersonMap(): Promise<PersonMapFile> {
   if (yamlEnv) {
     return (YAML.parse(yamlEnv) as PersonMapFile) ?? {};
   }
-  const supabase = createServiceClient();
+  const supabase = createAdminClient();
   const { data, error } = await supabase.storage.from(BRONZE_BUCKET).download("config/person_map.yml");
   if (!error && data) {
     const text = await data.text();
@@ -67,13 +48,18 @@ const app = new Hono().basePath(`/${FUNCTION_NAME}`);
 app.get("/health", (c) => c.json({ status: "ok" }));
 
 app.post("/", async (c) => {
-  if (!authorizeInternalRequest(c.req.header("Authorization"))) {
+  if (
+    !authorizeMaterializeRequest({
+      apikey: c.req.header("apikey"),
+      authorization: c.req.header("Authorization"),
+    })
+  ) {
     return c.json({ detail: "Unauthorized" }, 401);
   }
 
   const maxBatches = intEnv("MATERIALIZE_MAX_BATCHES", 20);
   const maxFilesPerBatch = intEnv("MATERIALIZE_MAX_FILES_PER_BATCH", 50);
-  const supabase = createServiceClient();
+  const supabase = createAdminClient();
   const personMap = await loadPersonMap();
 
   const { data: batches, error: listError } = await supabase.rpc("list_ingest_batches_to_materialize", {

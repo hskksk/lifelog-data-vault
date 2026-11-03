@@ -58,7 +58,7 @@ async function main() {
   const functionsBase = `https://${projectRef}.supabase.co/functions/v1`;
   console.log("\nDeploy complete.");
   console.log(`Ingest URL:      ${functionsBase}/owntracks-ingest`);
-  console.log(`Materialize URL: ${functionsBase}/owntracks-materialize (Cron / service role)`);
+  console.log(`Materialize URL: ${functionsBase}/owntracks-materialize (Cron / secret apikey)`);
 }
 
 main().catch((err) => {
