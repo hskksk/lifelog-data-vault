@@ -59,6 +59,14 @@ Scheduled workflow [`.github/workflows/owntracks-dbt.yml`](.github/workflows/own
 3. Build **session mode** pooler URL for `dbt_runner` ([connecting guide](https://supabase.com/docs/guides/database/connecting-to-postgres)).
 4. GitHub repo → Settings → Secrets → **`SUPABASE_DB_URL`** = full `postgresql://dbt_runner:...@...pooler.../postgres` URL (sslmode as required).
 
+**Install dbt (local)** — match CI (`dbt-postgres` **1.9** on Python). Homebrew `dbt-core` **2.x** (`dbt-oss`) does not ship the Postgres adapter this project uses; prefer a venv:
+
+```bash
+python3 -m venv .venv-dbt && source .venv-dbt/bin/activate
+pip install "dbt-postgres~=1.9"
+dbt --version   # 1.9.x — ensure `which dbt` is the venv, not Homebrew
+```
+
 **Local dbt after `make supabase-reset`**
 
 ```bash
