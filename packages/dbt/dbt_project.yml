@@ -8,7 +8,8 @@ macro-paths: ["macros"]
 test-paths: ["tests"]
 seed-paths: ["seeds"]
 
-# Schemas are created in supabase/migrations (dbt_runner has no CREATE on database postgres).
+# Schemas come from supabase/migrations. before_run schema creation is no-op via
+# macros/supabase_skip_create_schema.sql (+create_schema does not disable that in dbt 1.12).
 models:
   lifelog_vault:
     +create_schema: false
