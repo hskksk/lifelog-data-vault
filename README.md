@@ -46,7 +46,7 @@ If Edge returns **404**, the Hono routes likely omit `basePath('/owntracks-inges
 make demo-materialize-edge   # sources .env; sends `apikey: $SUPABASE_SECRET_KEY` (same as prod Cron)
 ```
 
-Or serve both functions: `make supabase-functions-serve` (needs `SUPABASE_SECRET_KEY` in `.env`). Production Cron (`*/15`) calls `invoke_owntracks_materialize()` using **Supabase Vault** (`supabase_project_id`, `supabase_secret_key`); deploy upserts them automatically when `SUPABASE_SECRET_KEY` is set (GitHub Secret or local env).
+Or serve both functions: `make supabase-functions-serve` (needs `SUPABASE_SECRET_KEY` in `.env`). **Production materialize:** GitHub Actions [`.github/workflows/owntracks-materialize.yml`](.github/workflows/owntracks-materialize.yml) every **15 minutes** (needs repo secrets `SUPABASE_PROJECT_REF`, `SUPABASE_SECRET_KEY`).
 
 ### dbt (S4 — GitHub Actions)
 
@@ -98,7 +98,7 @@ See [docs/architecture/overview.md](docs/architecture/overview.md) for monorepo 
 
 On push to **`main`** (paths under `supabase/`, `packages/ingest-core/`, etc.), [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml) runs `pnpm deploy`: link → Edge secrets → **`supabase db push`** (migrations only, no `seed.sql`) → deploy `owntracks-ingest` and `owntracks-materialize`. Manual run: Actions → **Deploy to Supabase** → **Run workflow**.
 
-**Repository secrets:** `SUPABASE_ACCESS_TOKEN`, `SUPABASE_PROJECT_REF`, `SUPABASE_DB_PASSWORD`, `INGEST_BEARER_TOKEN`. Deploy reads the pooler URL from **`supabase link`** (`supabase/.temp/pooler-url`) and runs `db push` with **`sslmode=require`** (not `ssl=true`). Optional override: `SUPABASE_DB_PUSH_URL`. Optional: `PERSON_MAP_YAML`. See [docs/architecture/supabase-runtime.md §7.1](docs/architecture/supabase-runtime.md#71-github-actions-deploysupabase).
+**Repository secrets:** `SUPABASE_ACCESS_TOKEN`, `SUPABASE_PROJECT_REF`, `SUPABASE_DB_PASSWORD`, `INGEST_BEARER_TOKEN`, **`SUPABASE_SECRET_KEY`** (materialize Actions + deploy Vault). Deploy reads the pooler URL from **`supabase link`** (`supabase/.temp/pooler-url`) and runs `db push` with **`sslmode=require`** (not `ssl=true`). Optional override: `SUPABASE_DB_PUSH_URL`. Optional: `PERSON_MAP_YAML`. See [docs/architecture/supabase-runtime.md §7.1](docs/architecture/supabase-runtime.md#71-github-actions-deploysupabase).
 
 Local equivalent (after `pnpm --filter @lifelog/ingest-core build`):
 

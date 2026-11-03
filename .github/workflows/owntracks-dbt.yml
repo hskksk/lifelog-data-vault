@@ -1,7 +1,7 @@
 name: owntracks-dbt
 
 on:
-  # Manual only until schedule is re-enabled (materialize Cron is */15 in DB).
+  # Manual only. Run after materialize (Actions */15) when inbox has staged rows.
   workflow_dispatch:
 
 concurrency:

@@ -1,0 +1,38 @@
+name: owntracks-materialize
+
+on:
+  schedule:
+    # Every 15 minutes (UTC). Matches config/sources.yml materialize_interval_minutes.
+    - cron: "*/15 * * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: owntracks-materialize
+  cancel-in-progress: false
+
+jobs:
+  materialize:
+    runs-on: ubuntu-latest
+    steps:
+      - name: POST owntracks-materialize Edge Function
+        env:
+          SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+          SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
+        run: |
+          set -euo pipefail
+          if [ -z "${SUPABASE_PROJECT_REF}" ] || [ -z "${SUPABASE_SECRET_KEY}" ]; then
+            echo "Set repository secrets SUPABASE_PROJECT_REF and SUPABASE_SECRET_KEY." >&2
+            exit 1
+          fi
+          url="https://${SUPABASE_PROJECT_REF}.supabase.co/functions/v1/owntracks-materialize"
+          code="$(curl -sS -o /tmp/materialize-body.json -w '%{http_code}' -X POST "$url" \
+            -H "apikey: ${SUPABASE_SECRET_KEY}" \
+            -H "Content-Type: application/json" \
+            -d '{}')"
+          echo "POST $url → HTTP ${code}"
+          cat /tmp/materialize-body.json
+          echo
+          case "$code" in
+            2*) ;;
+            *) exit 1 ;;
+          esac

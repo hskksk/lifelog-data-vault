@@ -46,7 +46,7 @@ flowchart TB
 **データの流れ**
 
 1. **ingest:** 1 POST → Bronze 1 オブジェクト + `ops.ingest_batch`（`status=received`）
-2. **materialize:** Cron が Edge を起動 → 未処理 batch を読み Bronze → `staging.owntracks_location_inbox`
+2. **materialize:** GitHub Actions（15 分）が Edge を POST → 未処理 batch を読み Bronze → `staging.owntracks_location_inbox`
 3. **dbt:** Actions が `vault_loaded_at is null` の行を対象に Raw Vault / mart を更新（既存 dbt プロジェクト）
 
 ---
@@ -116,7 +116,7 @@ bronze/owntracks/dt=YYYY-MM-DD/batch=<uuid>/_meta/batch.json
 | 冪等 | `(location_event_id, batch_id)` unique、duplicate ignore |
 | 制限 | 1 回の実行で処理する **batch 数上限**（例: 50）と **1 batch あたりファイル数上限** を設け、タイムアウト回避 |
 
-Cron 間隔: **15 分**（`config/sources.yml` の `materialize_interval_minutes` と一致）。
+スケジュール: **15 分**（[`owntracks-materialize.yml`](../../.github/workflows/owntracks-materialize.yml)；`config/sources.yml` の `materialize_interval_minutes` と一致）。旧 **pg_cron** は migration で解除（手動は `select public.invoke_owntracks_materialize();` 可）。
 
 ### 4.3 共有コード配置（モノレポ）
 
@@ -131,17 +131,9 @@ packages/ingest/               # ローカル dev 用 CLI（Storage エミュ / 
 
 ローカル開発: `supabase start` + `supabase functions serve ... --env-file .env`（`.env` に `SUPABASE_SECRET_KEY`）。materialize の手動 curl は **`apikey: sb_secret_...`**（[新 API keys](https://supabase.com/docs/guides/getting-started/migrating-to-new-api-keys)）。
 
-**Prod Cron（Vault）:** Hosted では `ALTER DATABASE … SET app.*` が **42501** になるため、podcaster と同様 **Supabase Vault** に置く。`pnpm deploy`（CI 含む）が `supabase_project_id` と `supabase_secret_key` を upsert する（要 `SUPABASE_SECRET_KEY` = Dashboard の default secret `sb_secret_...`）。
+**Prod materialize トリガ:** [`.github/workflows/owntracks-materialize.yml`](../../.github/workflows/owntracks-materialize.yml) が **15 分ごと**に Edge へ POST（`apikey: SUPABASE_SECRET_KEY`）。Repository secrets: `SUPABASE_PROJECT_REF`, `SUPABASE_SECRET_KEY`（deploy と共通）。
 
-手動のみ（deploy 前の一回や確認用）:
-
-```sql
-select vault.create_secret('<project-ref>', 'supabase_project_id', 'Edge Functions URL host segment');
-select vault.create_secret('sb_secret_...', 'supabase_secret_key', 'materialize apikey header');
--- 既存行がある場合は vault.update_secret(id, ...) または Dashboard → Vault UI
-```
-
-Cron は `public.invoke_owntracks_materialize()` が `https://{supabase_project_id}.supabase.co/functions/v1/owntracks-materialize` を **`apikey`** ヘッダ付きで `pg_net` 呼び出し。
+**Vault（任意）:** `public.invoke_owntracks_materialize()` は Vault から URL/secret を読んで pg_net する SQL 関数。定期実行は Actions に移したが、Dashboard SQL での手動起動用に残す。Vault 未設定時は NULL を返すだけ。
 
 ---
 
@@ -162,7 +154,7 @@ Cron は `public.invoke_owntracks_materialize()` が `https://{supabase_project_
 
 ### 6.1 接続
 
-- **GitHub Actions** `workflow_dispatch` のみ（`owntracks-dbt.yml`；cron は未設定。materialize は DB 側 **15 分** Cron）
+- **GitHub Actions** materialize: [`owntracks-materialize.yml`](../../.github/workflows/owntracks-materialize.yml)（cron **15 分** + `workflow_dispatch`）。dbt: [`owntracks-dbt.yml`](../../.github/workflows/owntracks-dbt.yml) は **`workflow_dispatch` のみ**
 - DB URL: **Session pooler** または **direct**（IPv6 add-on または pooler；dbt は prepared statement に注意 → [Supabase connecting guide](https://supabase.com/docs/guides/database/connecting-to-postgres) に従い **Session mode** を選ぶ）
 - 専用 DB ロール `dbt_runner`（`staging`/`raw_vault`/`mart` への DML/DDL 権限）を migration で作成し、URL は GitHub Secrets のみ
 
@@ -197,7 +189,7 @@ jobs:
 |------|------|
 | **local** | `supabase start`、migrations、functions serve、Storage ローカル |
 | **prod** | `supabase link` + `supabase db push` + `supabase functions deploy`（または main マージで [deploy.yml](../../.github/workflows/deploy.yml) が同等を実行） |
-| **CI** | PR: [ci.yml](../../.github/workflows/ci.yml)（ingest typecheck/test、dbt parse）；main: [deploy.yml](../../.github/workflows/deploy.yml)（`db push` + functions、**seed なし**）；dbt スケジュールは S4 の `owntracks-dbt.yml` |
+| **CI** | PR: [ci.yml](../../.github/workflows/ci.yml)；main: [deploy.yml](../../.github/workflows/deploy.yml)；定期: [owntracks-materialize.yml](../../.github/workflows/owntracks-materialize.yml)；dbt: [owntracks-dbt.yml](../../.github/workflows/owntracks-dbt.yml)（手動） |
 
 ### 7.1 GitHub Actions deploy（Supabase）
 
@@ -213,7 +205,7 @@ jobs:
 | `SUPABASE_PROJECT_REF` | プロジェクト ref |
 | `SUPABASE_DB_PASSWORD` | ホスト DB パスワード（pooler URL 組み立て・link 用） |
 | `INGEST_BEARER_TOKEN` | Edge ingest の Bearer（OwnTracks と同じ値） |
-| `SUPABASE_SECRET_KEY` | Vault upsert + materialize Cron（`sb_secret_...`；PAT に API Keys Read があれば deploy 時 CLI 自動取得も可） |
+| `SUPABASE_SECRET_KEY` | Vault upsert（deploy）+ **materialize workflow** の `apikey`（`sb_secret_...`） |
 
 **db push（IPv4）:** GitHub Actions は IPv6 direct に届かない。`deploy.ts` は `supabase link` 直後の **`supabase/.temp/pooler-url`** から pooler URL を組み立て `supabase db push --db-url …` する（TLS は **`sslmode=require`**。`ssl=true` ではない）。
 
@@ -223,7 +215,7 @@ jobs:
 
 **ローカル:** `pnpm --filter @lifelog/ingest-core build` のあと `.env` に Edge 用シークレットのみ載せ、`pnpm deploy`（要 `SUPABASE_*` 環境変数）。
 
-**手動で残す作業（deploy 外）:** `dbt_runner` パスワード、`SUPABASE_DB_URL`（dbt CI）、Bronze への `person_map.yml` アップロード（Secret を使わない場合）。materialize Cron は deploy が Vault を更新する（初回は GitHub に `SUPABASE_SECRET_KEY` を登録して deploy を一度走らせる）。
+**手動で残す作業（deploy 外）:** `dbt_runner` パスワード、`SUPABASE_DB_URL`（dbt CI）、Bronze への `person_map.yml` アップロード。materialize は **`SUPABASE_PROJECT_REF` + `SUPABASE_SECRET_KEY`** が repo secrets にあれば Actions cron が動く（merge 後、初回 schedule は GitHub 側の遅延があり得る）。
 
 **OCI / cloudflared:** 本設計では **プロダクション対象外**。README に「Supabase ランタイム」を正と記載。
 
@@ -262,7 +254,7 @@ jobs:
 |-------|--------|
 | **S1** | `supabase/` 初期化、migrations（V001/V002 相当）、スキーマ非露出 |
 | **S2** | Edge `owntracks-ingest` + Storage Bronze + `ops.ingest_batch` |
-| **S3** | Edge `owntracks-materialize` + Cron（pg_cron + Vault + `apikey`） |
+| **S3** | Edge `owntracks-materialize` + Actions cron（15 分） |
 | **S4** | GitHub Actions `owntracks-dbt.yml`、`dbt_runner` migration、Secrets ドキュメント |
 | **S5** | OwnTracks 実機接続、24h 監視（batch 0 件アラートは将来） |
 

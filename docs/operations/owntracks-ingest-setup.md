@@ -108,7 +108,7 @@ curl -sS -w "\nHTTP %{http_code}\n" -X POST \
 - Storage → bucket **`bronze`** → `bronze/owntracks/dt=…/batch=…/`
 - SQL: `select batch_id, status, bronze_prefix from ops.ingest_batch order by started_at desc limit 5;` → `status = received`
 
-約 15 分後（materialize Cron）に `staged` へ進む。詳細は [supabase-runtime.md](../architecture/supabase-runtime.md)。
+約 15 分以内（[materialize workflow](../../.github/workflows/owntracks-materialize.yml)）に `staged` へ進む。詳細は [supabase-runtime.md](../architecture/supabase-runtime.md)。
 
 ---
 
