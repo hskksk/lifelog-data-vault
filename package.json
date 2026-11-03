@@ -6,7 +6,8 @@
     "typecheck": "pnpm --filter @lifelog/ingest-core typecheck && pnpm --filter @lifelog/ingest typecheck",
     "test": "pnpm --filter @lifelog/ingest-core test && pnpm --filter @lifelog/ingest test",
     "ingest": "pnpm --filter @lifelog/ingest exec lifelog-ingest",
-    "deploy": "tsx scripts/deploy.ts"
+    "deploy": "tsx scripts/deploy.ts",
+    "resolve-dbt-db-url": "tsx scripts/resolve-dbt-db-url.ts"
   },
   "devDependencies": {
     "dotenv": "^16.4.7",

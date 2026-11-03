@@ -95,6 +95,29 @@ async function main() {
     "Secret API key (sb_secret_...) for owntracks-materialize apikey header",
   );
 
+  const dbtRunnerPassword = process.env.DBT_RUNNER_PASSWORD?.trim();
+  if (dbtRunnerPassword) {
+    upsertVaultSecret(
+      pushUrl,
+      "dbt_runner_password",
+      dbtRunnerPassword,
+      "dbt_runner login password (session pooler / GitHub dbt)",
+    );
+  }
+
+  try {
+    runSql(
+      "sync dbt_runner password from Vault",
+      "select ops.sync_dbt_runner_password_from_vault();",
+      pushUrl,
+    );
+  } catch (err) {
+    console.warn(
+      "\n[warn] dbt_runner password sync skipped (set Vault secret dbt_runner_password or DBT_RUNNER_PASSWORD on deploy):",
+      err instanceof Error ? err.message : err,
+    );
+  }
+
   // 5. Deploy Edge Functions
   runSupabase([
     "functions",

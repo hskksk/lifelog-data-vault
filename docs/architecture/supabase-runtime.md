@@ -163,8 +163,8 @@ Cron は `public.invoke_owntracks_materialize()` が `https://{supabase_project_
 ### 6.1 接続
 
 - **GitHub Actions** `workflow_dispatch` のみ（`owntracks-dbt.yml`；cron は未設定。materialize は DB 側 **15 分** Cron）
-- DB URL: **Session pooler** または **direct**（IPv6 add-on または pooler；dbt は prepared statement に注意 → [Supabase connecting guide](https://supabase.com/docs/guides/database/connecting-to-postgres) に従い **Session mode** を選ぶ）
-- 専用 DB ロール `dbt_runner`（`staging`/`raw_vault`/`mart` への DML/DDL 権限）を migration で作成し、URL は GitHub Secrets のみ
+- **接続:** session pooler + ロール **`dbt_runner`**。パスワードは **Vault `dbt_runner_password`** → deploy / `ops.sync_dbt_runner_password_from_vault()` がロールに反映。CI は [resolve-dbt-db-url.ts](../../scripts/resolve-dbt-db-url.ts) が deploy と同じ pooler 解決 + Vault 読み取り（[dbt-ci-setup.md](../operations/dbt-ci-setup.md)）
+- **`SUPABASE_DB_URL` GitHub secret は不要**
 
 ### 6.2 ワークフロー（イメージ）
 
@@ -178,7 +178,8 @@ jobs:
       - run: cd packages/dbt && dbt build --select tag:owntracks
     env:
       DBT_PROFILES_DIR: .
-      SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+      # resolved in workflow via resolve-dbt-db-url.ts
+      SUPABASE_DB_URL: ...
 ```
 
 `profiles.yml` は CI 用 template のみリポジトリに置き、URL は env から注入。
@@ -233,7 +234,7 @@ jobs:
 
 **ローカル:** `pnpm --filter @lifelog/ingest-core build` のあと `.env` に Edge 用シークレットのみ載せ、`pnpm deploy`（要 `SUPABASE_*` 環境変数）。
 
-**手動で残す作業（deploy 外）:** `dbt_runner` パスワード、`SUPABASE_DB_URL`（dbt CI）、Bronze への `person_map.yml` アップロード（Secret を使わない場合）。materialize Cron は deploy が Vault を更新する（初回は GitHub に `SUPABASE_SECRET_KEY` を登録して deploy を一度走らせる）。
+**手動で残す作業（deploy 外）:** Vault **`dbt_runner_password`**（初回）→ deploy で sync、Bronze **`config/person_map.yml`**。materialize Cron は deploy が Vault（`supabase_project_id` / `supabase_secret_key`）を更新。
 
 **OCI / cloudflared:** 本設計では **プロダクション対象外**。README に「Supabase ランタイム」を正と記載。
 

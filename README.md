@@ -52,12 +52,12 @@ Or serve both functions: `make supabase-functions-serve` (needs `SUPABASE_SECRET
 
 Run [`.github/workflows/owntracks-dbt.yml`](.github/workflows/owntracks-dbt.yml) manually (**Actions → owntracks-dbt → Run workflow**). It runs `dbt build --select tag:owntracks` (no cron until we turn scheduling back on).
 
-**Production setup**
+**Production setup:** [docs/operations/dbt-ci-setup.md](docs/operations/dbt-ci-setup.md)
 
-1. Apply migrations only: `supabase link` then `supabase db push`. **`supabase/seed.sql` does not run on push** (it runs only on local `supabase db reset`). Do not use `db push --include-seed --remote` on production. Details: [docs/architecture/supabase-runtime.md §7.2](docs/architecture/supabase-runtime.md#72-supabaseseedsql-と本番).
-2. Role `dbt_runner` is created without a password in SQL. Supabase Dashboard → SQL: `alter role dbt_runner password '<strong-password>';`
-3. Build **session mode** pooler URL for `dbt_runner` ([connecting guide](https://supabase.com/docs/guides/database/connecting-to-postgres)).
-4. GitHub repo → Settings → Secrets → **`SUPABASE_DB_URL`** = full `postgresql://dbt_runner:...@...pooler.../postgres` URL (sslmode as required).
+1. Migrations via deploy (`db push`). **`seed.sql` does not run on prod push** ([§7.2](docs/architecture/supabase-runtime.md#72-supabaseseedsql-と本番)).
+2. Vault secret **`dbt_runner_password`** (Dashboard → Vault).
+3. Run **Deploy to Supabase** once so `ops.sync_dbt_runner_password_from_vault()` applies it to role `dbt_runner`.
+4. GitHub secrets for dbt workflow: **`SUPABASE_ACCESS_TOKEN`**, **`SUPABASE_PROJECT_REF`**, **`SUPABASE_DB_PASSWORD`** (same as deploy — no `SUPABASE_DB_URL`).
 
 **Install dbt (local)** — match CI (`dbt-postgres` **1.9** on Python). Homebrew `dbt-core` **2.x** (`dbt-oss`) does not ship the Postgres adapter this project uses; prefer a venv:
 

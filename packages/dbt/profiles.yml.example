@@ -1,4 +1,4 @@
-# Copy to profiles.yml (gitignored). CI uses env SUPABASE_DB_URL — see .github/workflows/owntracks-dbt.yml
+# Copy to profiles.yml (gitignored). CI builds SUPABASE_DB_URL via scripts/resolve-dbt-db-url.ts — see docs/operations/dbt-ci-setup.md
 
 lifelog_vault:
   target: supabase_local

@@ -133,3 +133,18 @@ export async function resolveDbPushUrl(projectRef: string, password: string): Pr
 
   return fetchSessionPoolerPushUrl(projectRef, password);
 }
+
+/** Session pooler URL for role dbt_runner (same host/port as postgres pooler). */
+export function buildDbtRunnerPoolerUrl(
+  projectRef: string,
+  postgresPoolerUrl: string,
+  dbtRunnerPassword: string,
+): string {
+  const parsed = new URL(postgresPoolerUrl);
+  parsed.username = `dbt_runner.${projectRef}`;
+  parsed.password = dbtRunnerPassword;
+  if (parsed.port === "6543") {
+    parsed.port = "5432";
+  }
+  return ensureSslMode(parsed.toString());
+}
