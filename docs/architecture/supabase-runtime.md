@@ -134,13 +134,17 @@ packages/ingest/               # ローカル dev 用 CLI（Storage エミュ / 
 
 ローカル開発: `supabase start` + `supabase functions serve ... --env-file .env`（`.env` に `SUPABASE_SECRET_KEY`）。materialize の手動 curl は **`apikey: sb_secret_...`**（[新 API keys](https://supabase.com/docs/guides/getting-started/migrating-to-new-api-keys)）。
 
-**Prod Cron 用 DB 設定（Dashboard SQL、Secret は DB にのみ）:**
+**Prod Cron（Vault）:** Hosted では `ALTER DATABASE … SET app.*` が **42501** になるため、podcaster と同様 **Supabase Vault** に置く。`pnpm deploy`（CI 含む）が `supabase_project_id` と `supabase_secret_key` を upsert する（要 `SUPABASE_SECRET_KEY` = Dashboard の default secret `sb_secret_...`）。
+
+手動のみ（deploy 前の一回や確認用）:
 
 ```sql
-alter database postgres set app.supabase_functions_url = 'https://<project-ref>.supabase.co/functions/v1';
-alter database postgres set app.supabase_secret_key = 'sb_secret_...';
-select pg_reload_conf();
+select vault.create_secret('<project-ref>', 'supabase_project_id', 'Edge Functions URL host segment');
+select vault.create_secret('sb_secret_...', 'supabase_secret_key', 'materialize apikey header');
+-- 既存行がある場合は vault.update_secret(id, ...) または Dashboard → Vault UI
 ```
+
+Cron は `public.invoke_owntracks_materialize()` が `https://{supabase_project_id}.supabase.co/functions/v1/owntracks-materialize` を **`apikey`** ヘッダ付きで `pg_net` 呼び出し。
 
 ---
 
@@ -212,6 +216,7 @@ jobs:
 | `SUPABASE_PROJECT_REF` | プロジェクト ref |
 | `SUPABASE_DB_PASSWORD` | ホスト DB パスワード（pooler URL 組み立て・link 用） |
 | `INGEST_BEARER_TOKEN` | Edge ingest の Bearer（OwnTracks と同じ値） |
+| `SUPABASE_SECRET_KEY` | Vault upsert + materialize Cron（`sb_secret_...`；PAT に API Keys Read があれば deploy 時 CLI 自動取得も可） |
 
 **db push（IPv4）:** GitHub Actions は IPv6 direct に届かない。`deploy.ts` は `supabase link` 直後の **`supabase/.temp/pooler-url`** から pooler URL を組み立て `supabase db push --db-url …` する（TLS は **`sslmode=require`**。`ssl=true` ではない）。
 
@@ -221,7 +226,7 @@ jobs:
 
 **ローカル:** `pnpm --filter @lifelog/ingest-core build` のあと `.env` に Edge 用シークレットのみ載せ、`pnpm deploy`（要 `SUPABASE_*` 環境変数）。
 
-**手動で残す作業（deploy 外）:** `dbt_runner` パスワード、`SUPABASE_DB_URL`（dbt CI）、DB 設定 `app.supabase_functions_url` / `app.supabase_secret_key`（materialize Cron・`apikey` ヘッダ）、Bronze への `person_map.yml` アップロード（Secret を使わない場合）。
+**手動で残す作業（deploy 外）:** `dbt_runner` パスワード、`SUPABASE_DB_URL`（dbt CI）、Bronze への `person_map.yml` アップロード（Secret を使わない場合）。materialize Cron は deploy が Vault を更新する（初回は GitHub に `SUPABASE_SECRET_KEY` を登録して deploy を一度走らせる）。
 
 **OCI / cloudflared:** 本設計では **プロダクション対象外**。README に「Supabase ランタイム」を正と記載。
 
@@ -260,7 +265,7 @@ jobs:
 |-------|--------|
 | **S1** | `supabase/` 初期化、migrations（V001/V002 相当）、スキーマ非露出 |
 | **S2** | Edge `owntracks-ingest` + Storage Bronze + `ops.ingest_batch` |
-| **S3** | Edge `owntracks-materialize` + Cron（pg_cron + `apikey`；prod は `app.supabase_secret_key`） |
+| **S3** | Edge `owntracks-materialize` + Cron（pg_cron + Vault + `apikey`） |
 | **S4** | GitHub Actions `owntracks-dbt.yml`、`dbt_runner` migration、Secrets ドキュメント |
 | **S5** | OwnTracks 実機接続、24h 監視（batch 0 件アラートは将来） |
 

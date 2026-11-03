@@ -2,14 +2,14 @@
 /**
  * Remote Supabase deploy (pattern: hskksk/podcaster scripts/deploy.ts).
  *
- * Remote: link → secrets → db push → functions deploy.
+ * Remote: link → secrets → db push → vault upsert → functions deploy.
  * Lifelog differs only on db push: GitHub Actions is IPv4-only, so migrations use
  * session pooler (--db-url) via scripts/lib/supabase-pooler-url.ts. Podcaster uses
  * plain `supabase db push` after link (same runner may need the same fix later).
  */
 import dotenv from "dotenv";
 import { execFileSync, execSync } from "node:child_process";
-import { detectProjectRef } from "./lib/supabase-detect.ts";
+import { detectProjectRef, detectSecretKey } from "./lib/supabase-detect.ts";
 import { resolveDbPushUrl } from "./lib/supabase-pooler-url.ts";
 
 dotenv.config({ path: ".env" });
@@ -26,6 +26,41 @@ function runSupabase(args: string[]) {
   execFileSync("supabase", args, { stdio: "inherit", env: process.env });
 }
 
+function escapeSqlLiteral(value: string): string {
+  return "'" + value.replace(/'/g, "''") + "'";
+}
+
+function runSql(label: string, sql: string, dbUrl: string) {
+  console.log(`\n[sql] ${label}`);
+  execFileSync("supabase", ["db", "query", "--db-url", dbUrl], {
+    input: sql,
+    stdio: ["pipe", "inherit", "inherit"],
+    env: process.env,
+  });
+}
+
+function upsertVaultSecret(dbUrl: string, name: string, value: string, description: string) {
+  runSql(
+    `vault: upsert ${name}`,
+    `
+do $$
+declare
+  v_id uuid;
+  v_value text := ${escapeSqlLiteral(value)};
+begin
+  select id into v_id from vault.secrets where name = ${escapeSqlLiteral(name)} limit 1;
+  if v_id is null then
+    perform vault.create_secret(v_value, ${escapeSqlLiteral(name)}, ${escapeSqlLiteral(description)});
+  else
+    perform vault.update_secret(v_id, v_value, ${escapeSqlLiteral(name)}, ${escapeSqlLiteral(description)});
+  end if;
+end;
+$$;
+`,
+    dbUrl,
+  );
+}
+
 async function main() {
   if (!process.env.SUPABASE_DB_PASSWORD) {
     console.error("SUPABASE_DB_PASSWORD is required (hosted Postgres password).");
@@ -33,6 +68,7 @@ async function main() {
   }
 
   const projectRef = detectProjectRef();
+  const secretKey = detectSecretKey(projectRef);
   const password = process.env.SUPABASE_DB_PASSWORD;
 
   // 1. Link project (idempotent). Password via env — same as podcaster CI + Supabase docs.
@@ -45,7 +81,21 @@ async function main() {
   const pushUrl = await resolveDbPushUrl(projectRef, password);
   runSupabase(["db", "push", "--db-url", pushUrl, "--yes"]);
 
-  // 4. Deploy Edge Functions
+  // 4. Vault secrets for pg_cron → materialize Edge (hosted cannot ALTER DATABASE SET app.*)
+  upsertVaultSecret(
+    pushUrl,
+    "supabase_project_id",
+    projectRef,
+    "Supabase project ref for building Edge Functions base URL",
+  );
+  upsertVaultSecret(
+    pushUrl,
+    "supabase_secret_key",
+    secretKey,
+    "Secret API key (sb_secret_...) for owntracks-materialize apikey header",
+  );
+
+  // 5. Deploy Edge Functions
   runSupabase([
     "functions",
     "deploy",
@@ -58,7 +108,7 @@ async function main() {
   const functionsBase = `https://${projectRef}.supabase.co/functions/v1`;
   console.log("\nDeploy complete.");
   console.log(`Ingest URL:      ${functionsBase}/owntracks-ingest`);
-  console.log(`Materialize URL: ${functionsBase}/owntracks-materialize (Cron / secret apikey)`);
+  console.log(`Materialize URL: ${functionsBase}/owntracks-materialize (Cron uses Vault + apikey)`);
 }
 
 main().catch((err) => {

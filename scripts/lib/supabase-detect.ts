@@ -32,3 +32,31 @@ export function detectProjectRef(): string {
   );
   process.exit(1);
 }
+
+/** Secret API key (`sb_secret_...`) for Vault upsert + materialize Cron (not legacy service_role JWT). */
+export function detectSecretKey(projectRef: string): string {
+  if (process.env.SUPABASE_SECRET_KEY?.trim()) return process.env.SUPABASE_SECRET_KEY.trim();
+  try {
+    const out = execSync(
+      `supabase projects api-keys --project-ref ${projectRef} -o json`,
+      { encoding: "utf8", stdio: ["pipe", "pipe", "pipe"] },
+    );
+    const keys: Array<{ name: string; api_key: string; type?: string }> = JSON.parse(out);
+    const byName = keys.find((k) => k.name === "default" || k.name === "secret");
+    if (byName?.api_key) {
+      console.log(`Auto-detected secret key (${byName.name}) from supabase projects api-keys.`);
+      return byName.api_key;
+    }
+    const byType = keys.find((k) => k.type === "secret");
+    if (byType?.api_key) {
+      console.log("Auto-detected secret key from supabase projects api-keys.");
+      return byType.api_key;
+    }
+  } catch {
+    // CLI unavailable or PAT lacks scope
+  }
+  console.error(
+    "SUPABASE_SECRET_KEY is unset and could not be resolved via supabase projects api-keys.",
+  );
+  process.exit(1);
+}

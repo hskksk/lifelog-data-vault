@@ -46,7 +46,7 @@ If Edge returns **404**, the Hono routes likely omit `basePath('/owntracks-inges
 make demo-materialize-edge   # sources .env; sends `apikey: $SUPABASE_SECRET_KEY` (same as prod Cron)
 ```
 
-Or serve both functions: `make supabase-functions-serve` (needs `SUPABASE_SECRET_KEY` in `.env`). Production Cron (`*/15`) runs when DB settings `app.supabase_functions_url` and `app.supabase_secret_key` are set (secret API key, not legacy JWT).
+Or serve both functions: `make supabase-functions-serve` (needs `SUPABASE_SECRET_KEY` in `.env`). Production Cron (`*/15`) calls `invoke_owntracks_materialize()` using **Supabase Vault** (`supabase_project_id`, `supabase_secret_key`); deploy upserts them automatically when `SUPABASE_SECRET_KEY` is set (GitHub Secret or local env).
 
 ### dbt (S4 — GitHub Actions)
 
