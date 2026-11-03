@@ -11,12 +11,39 @@ concurrency:
 jobs:
   dbt:
     runs-on: ubuntu-latest
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+      SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+      SUPABASE_DB_PUSH_URL: ${{ secrets.SUPABASE_DB_PUSH_URL }}
+
     steps:
       - uses: actions/checkout@v4
 
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+
+      - uses: hskksk/gh-actions/actions/setup-mise@v1
+
+      - run: pnpm install --frozen-lockfile
+
+      - uses: hskksk/gh-actions/actions/setup-supabase-cli@v1
+        with:
+          install: "false"
+
+      - name: Link Supabase project
+        run: supabase link --project-ref "${SUPABASE_PROJECT_REF}" --yes
+
+      - name: Resolve dbt session pooler URL (Vault dbt_runner_password)
+        id: dbt_db
+        run: |
+          url="$(pnpm exec tsx scripts/resolve-dbt-db-url.ts)"
+          {
+            echo "url<<EOF"
+            echo "$url"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
 
       - name: Install dbt
         run: pip install dbt-postgres~=1.9
@@ -42,5 +69,5 @@ jobs:
       - name: dbt build tag:owntracks
         working-directory: packages/dbt
         env:
-          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+          SUPABASE_DB_URL: ${{ steps.dbt_db.outputs.url }}
         run: dbt build --select tag:owntracks --profiles-dir .
