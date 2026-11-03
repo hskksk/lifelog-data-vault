@@ -4,9 +4,12 @@
  * Default: JSON on stdout for CI. --format=github writes multiline-safe GITHUB_OUTPUT keys.
  */
 import dotenv from "dotenv";
-import { parsePostgresUrl, type DbtPostgresConnection } from "./lib/dbt-connection.ts";
+import {
+  dbtRunnerConnectionFromPostgresPooler,
+  type DbtPostgresConnection,
+} from "./lib/dbt-connection.ts";
 import { detectProjectRef } from "./lib/supabase-detect.ts";
-import { buildDbtRunnerPoolerUrl, resolveDbPushUrl } from "./lib/supabase-pooler-url.ts";
+import { resolveDbPushUrl } from "./lib/supabase-pooler-url.ts";
 import { readVaultSecret } from "./lib/vault-read.ts";
 
 dotenv.config({ path: ".env" });
@@ -18,8 +21,7 @@ async function resolveConnection(): Promise<DbtPostgresConnection> {
   const projectRef = detectProjectRef();
   const postgresPoolerUrl = await resolveDbPushUrl(projectRef, process.env.SUPABASE_DB_PASSWORD);
   const dbtPassword = readVaultSecret(postgresPoolerUrl, "dbt_runner_password");
-  const dbtUrl = buildDbtRunnerPoolerUrl(projectRef, postgresPoolerUrl, dbtPassword);
-  return parsePostgresUrl(dbtUrl);
+  return dbtRunnerConnectionFromPostgresPooler(projectRef, postgresPoolerUrl, dbtPassword);
 }
 
 function writeGithubOutput(conn: DbtPostgresConnection) {
