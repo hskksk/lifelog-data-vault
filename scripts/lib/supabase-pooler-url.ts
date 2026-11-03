@@ -1,5 +1,8 @@
 /** Session pooler URL for `supabase db push` from IPv4-only CI (GitHub Actions). */
 
+import fs from "node:fs";
+import path from "node:path";
+
 type PoolerConfig = {
   database_type?: string;
   pool_mode?: string;
@@ -8,6 +11,8 @@ type PoolerConfig = {
   db_port: number;
   db_name: string;
 };
+
+const LINKED_POOLER_URL_FILE = path.join("supabase", ".temp", "pooler-url");
 
 /** Postgres URLs use `sslmode=require` (not `ssl=true`). Supabase pooler expects TLS. */
 export function ensureSslMode(connectionUrl: string): string {
@@ -40,7 +45,25 @@ function pickSessionPooler(configs: PoolerConfig[]): PoolerConfig | undefined {
   );
 }
 
-/** Fetch Supavisor session pooler host via Management API (IPv4). */
+/**
+ * After `supabase link`, the CLI writes `supabase/.temp/pooler-url` (same source as link uses).
+ * Avoids a separate Management API call and does not need `database_pooling_config_read` on the PAT.
+ */
+export function readLinkedPoolerPushUrl(password: string): string | null {
+  const file = path.join(process.cwd(), LINKED_POOLER_URL_FILE);
+  if (!fs.existsSync(file)) return null;
+
+  let raw = fs.readFileSync(file, "utf8").trim();
+  if (!raw.includes("pooler.supabase.com")) return null;
+
+  raw = raw.replaceAll("[YOUR-PASSWORD]", encodePostgresPassword(password));
+  // CLI template is often transaction mode (:6543); prefer session (:5432) for migrations.
+  raw = raw.replace(".pooler.supabase.com:6543/", ".pooler.supabase.com:5432/");
+
+  return ensureSslMode(raw);
+}
+
+/** Optional fallback when pooler-url file is missing (needs Connection Pooling → Read on the PAT). */
 export async function fetchSessionPoolerPushUrl(
   projectRef: string,
   password: string,
@@ -59,7 +82,8 @@ export async function fetchSessionPoolerPushUrl(
     const body = await res.text();
     throw new Error(
       `Failed to load pooler config (${res.status}). ` +
-        "Grant the access token Database Config (Read) / pooler read, or set SUPABASE_DB_PUSH_URL. " +
+        "PAT needs Connection Pooling → Read (database_pooling_config_read), not Database Config alone. " +
+        "Or set SUPABASE_DB_PUSH_URL. " +
         body.slice(0, 200),
     );
   }
@@ -78,5 +102,11 @@ export async function resolveDbPushUrl(projectRef: string, password: string): Pr
   if (fromEnv) {
     return ensureSslMode(fromEnv);
   }
+
+  const fromLink = readLinkedPoolerPushUrl(password);
+  if (fromLink) {
+    return fromLink;
+  }
+
   return fetchSessionPoolerPushUrl(projectRef, password);
 }

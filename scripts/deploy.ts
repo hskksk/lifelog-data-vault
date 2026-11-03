@@ -4,7 +4,7 @@
  * GitHub Actions: .github/workflows/deploy.yml
  *
  * GitHub Actions is IPv4-only. `db push` uses the session pooler (--db-url) with sslmode=require,
- * resolved from SUPABASE_DB_PUSH_URL or the Management API pooler config.
+ * resolved from SUPABASE_DB_PUSH_URL, `supabase/.temp/pooler-url` after link, or Management API.
  */
 import dotenv from "dotenv";
 import { execSync } from "node:child_process";
