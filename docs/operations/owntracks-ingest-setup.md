@@ -44,15 +44,20 @@ https://<project-ref>.supabase.co/functions/v1/owntracks-ingest
 
 例: `https://xyzcompanyabc123.supabase.co/functions/v1/owntracks-ingest`
 
-### 2.3 認証（Bearer）
+### 2.3 認証（iOS / Android 共通 — HTTP Basic）
 
-Edge の実装は **`Authorization: Bearer <INGEST_BEARER_TOKEN>` と完全一致**のみ許可する（[owntracks-ingest/index.ts](../../supabase/functions/owntracks-ingest/index.ts)）。  
-OwnTracks 標準の **HTTP Basic**（URL の `user:password@` や Identification の username/password）**だけでは 401** になる。
+[OwnTracks HTTP モード](https://owntracks.org/booklet/tech/http/)の公式のやり方は **HTTP Basic**（Identification の username / password、または URL の `https://user:password@host/...`）。**設定画面に Bearer トークン欄はない。**
 
-| プラットフォーム | Bearer の付け方 |
-|------------------|-----------------|
-| **iOS** | Connection 設定に加え、設定 JSON（`.otrc` 等）の **`httpHeaders`** で付与する。[booklet: `httpHeaders`](https://owntracks.org/booklet/tech/json/) — 1 行 1 ヘッダ、`名前:値`、複数行は `\n`。例: `Authorization:Bearer <INGEST_BEARER_TOKEN>`（`:` の直後にスペースを入れない形式が一般的）。 |
-| **Android** | **2025 時点でカスタム HTTP ヘッダ未対応**（[discussion #2144](https://github.com/owntracks/android/issues/2144)）。Basic だけでは本 ingest と接続できない。**iOS と同じ Bearer が必要なら**、TLS 終端の前段（Cloudflare Worker / 自前 reverse proxy 等）で Basic を検証し、Origin へ **`Authorization: Bearer …` を付与**するか、Android の custom header 対応を待つ。 |
+本番 Edge は次のどちらかで **`INGEST_BEARER_TOKEN` と同じ秘密**を渡せばよい（[ingest-auth.ts](../../supabase/functions/_shared/ingest-auth.ts)）。
+
+| 方式 | 端末での設定 |
+|------|----------------|
+| **Basic（推奨）** | Identification → **Password** = `INGEST_BEARER_TOKEN`（GitHub / Edge secret と同じ文字列）。**Username** は任意（例: `me` — `X-Limit-U` / `topic` 用。Recorder 利用時は device name も要）。`auth` を有効にする。 |
+| **Bearer** | curl / 自前クライアント向け: `Authorization: Bearer <INGEST_BEARER_TOKEN>` |
+
+**iOS の `httpHeaders`（17.1.1+）** で `Authorization:Bearer …` を足す方法もあるが、**UI 上は Basic が主**で、Identification の Basic と **`Authorization` ヘッダが二重**になると期待どおり動かないことがある（[#761](https://github.com/owntracks/ios/issues/761) は Cloudflare 用の**別名**ヘッダ向け）。**Bearer 専用設定はアプリが提供していない**と考えてよい。
+
+**Android** も Identification の username / password で Basic 送信（[#2144](https://github.com/owntracks/android/issues/2144) — カスタムヘッダは未対応）。上記 **Password = 共有秘密** で Edge に接続できる。
 
 Identification の **username / device name** は Bearer とは別。HTTP では [`X-Limit-U` / `X-Limit-D`](https://owntracks.org/booklet/tech/http/) や JSON の `topic`（例: `owntracks/<user>/<device>`）の識別に使う。materialize 時の `person_map` と整合させる（[config/person_map.yml](../../config/person_map.yml)）。
 
@@ -74,9 +79,8 @@ Identification の **username / device name** は Bearer とは別。HTTP では
 | Supabase Edge secret | `INGEST_BEARER_TOKEN` | 上と同じ |
 | OwnTracks | Mode | HTTP (`3`) |
 | OwnTracks | URL | `https://<project-ref>.supabase.co/functions/v1/owntracks-ingest` |
-| OwnTracks（iOS） | `httpHeaders` | `Authorization:Bearer <INGEST_BEARER_TOKEN>` |
+| OwnTracks | Identification → **password** | **`INGEST_BEARER_TOKEN` と同じ**（Basic） |
 | OwnTracks | Identification → user / device | 任意だが `topic`・`person_map` 用に推奨 |
-| OwnTracks（Android） | URL + Basic のみ | **そのままでは不可** → 2.3 の回避 |
 
 ingest **以降**（Bronze → staging → dbt）は端末設定不要。materialize Cron は Vault（[supabase-runtime.md](../architecture/supabase-runtime.md)）。
 
@@ -89,9 +93,10 @@ ingest **以降**（Bronze → staging → dbt）は端末設定不要。materia
 `<project-ref>` と `<token>` を置き換える。
 
 ```bash
+# Same as OwnTracks (Basic password = token)
 curl -sS -w "\nHTTP %{http_code}\n" -X POST \
   "https://<project-ref>.supabase.co/functions/v1/owntracks-ingest" \
-  -H "Authorization: Bearer <token>" \
+  -u "me:<token>" \
   -H "Content-Type: application/json" \
   -d '{"_type":"location","topic":"owntracks/me/iphone","tid":"ip","tst":1700000000,"lat":35.6812,"lon":139.7671,"t":"u","acc":10}'
 ```
@@ -111,7 +116,7 @@ curl -sS -w "\nHTTP %{http_code}\n" -X POST \
 
 | HTTP | 意味 | 確認 |
 |------|------|------|
-| **401** | Bearer 不一致 | `INGEST_BEARER_TOKEN`（Edge）とアプリの `Authorization` / `httpHeaders` |
+| **401** | 秘密不一致 | Edge の `INGEST_BEARER_TOKEN` と Basic **password**（または Bearer） |
 | **503** | ingest 未設定 | Edge に `INGEST_BEARER_TOKEN` が無い → deploy / Dashboard Secrets |
 | **404** | パス誤り | URL が `…/functions/v1/owntracks-ingest` か |
 | **400** | JSON 不正 | `_type` 等のペイロード |
