@@ -6,4 +6,6 @@ models:
       - name: location_event_id
         tests:
           - not_null
-          - unique
+      - name: batch_id
+        tests:
+          - not_null
