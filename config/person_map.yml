@@ -6,3 +6,9 @@ default_person_id: me
 # users:
 #   me: me
 #   partner: spouse
+
+# Optional: map a Mac / Health device business key to person_id.
+# Unlisted devices use default_person_id. See docs/architecture/macos-local-ingest.md.
+# devices:
+#   "macos:<hardware-uuid>": me
+#   "macos:<hardware-uuid>:uid:501": me

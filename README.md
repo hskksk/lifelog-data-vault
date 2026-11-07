@@ -123,6 +123,10 @@ pnpm deploy
 
 Cron / dbt / `dbt_runner` password remain one-time Dashboard or SQL setup (not in this workflow).
 
+### Mac power, Screen Time, Health
+
+Design only (not implemented): [docs/architecture/macos-local-ingest.md](docs/architecture/macos-local-ingest.md). A launchd agent on the Mac pushes normalized JSON to Edge. Health `export.zip` stays on the Mac; the agent posts record chunks. Toggles in `config/sources.yml` (`macos_power`, `macos_screentime`, `apple_health`) stay disabled until that pipeline exists.
+
 ### OwnTracks (location)
 
 Design: [docs/architecture/owntracks.md](docs/architecture/owntracks.md). Supabase runtime: [docs/architecture/supabase-runtime.md](docs/architecture/supabase-runtime.md). **OwnTracks app URL / Bearer:** [docs/operations/owntracks-ingest-setup.md](docs/operations/owntracks-ingest-setup.md).

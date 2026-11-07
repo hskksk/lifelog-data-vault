@@ -107,6 +107,8 @@
 
 **ソース優先度の候補（チャットと整合）:** Apple Health → PC ActivityWatch / atuin → Spotify API → Google Maps エクスポート（半自動）。
 
+Mac の電源ログ・スクリーンタイム・ヘルスケア.app の取り込み方は、調査メモではなく [../architecture/macos-local-ingest.md](../architecture/macos-local-ingest.md) を正とする。ヘルスケアは Health Auto Export の Webhook ではなく、Mac 上の `export.zip` をコレクタが分解して送る。
+
 ---
 
 ## 8. 参考（チャット内の次アクション候補）
