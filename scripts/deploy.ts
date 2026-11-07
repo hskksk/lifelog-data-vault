@@ -118,6 +118,29 @@ async function main() {
     );
   }
 
+  const biReaderPassword = process.env.BI_READER_PASSWORD?.trim();
+  if (biReaderPassword) {
+    upsertVaultSecret(
+      pushUrl,
+      "bi_reader_password",
+      biReaderPassword,
+      "bi_reader login password (Metabase, session pooler)",
+    );
+  }
+
+  try {
+    runSql(
+      "sync bi_reader password from Vault",
+      "select ops.sync_bi_reader_password_from_vault();",
+      pushUrl,
+    );
+  } catch (err) {
+    console.warn(
+      "\n[warn] bi_reader password sync skipped (set Vault secret bi_reader_password or BI_READER_PASSWORD on deploy):",
+      err instanceof Error ? err.message : err,
+    );
+  }
+
   // 5. Deploy Edge Functions
   runSupabase([
     "functions",

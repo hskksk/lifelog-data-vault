@@ -1,0 +1,111 @@
+# Metabase セットアップ
+
+設計: [../architecture/metabase.md](../architecture/metabase.md)
+
+## 1. ローカル
+
+```bash
+make supabase-start
+make supabase-reset    # bi_reader / local-bi-reader
+# mart が空なら、取り込みのあと
+make dbt-owntracks      # post-hook が mart.* に SELECT を付ける
+make metabase-up        # http://127.0.0.1:3000
+```
+
+初回起動は JVM の立ち上がりで 1〜2 分かかることがある。止めるときは `make metabase-down`（ボリュームは残る。質問定義も残る）。ログは `make metabase-logs`。ポートを変えるときは `METABASE_PORT=3001 make metabase-up`。
+
+ブラウザで管理者ユーザーを作る。これは H2（Docker volume `lifelog-metabase_metabase_data`）に保存される。Supabase のユーザーではない。
+
+**Admin → Databases → Add database**
+
+| フィールド | 値 |
+|------------|----|
+| Database type | PostgreSQL |
+| Display name | lifelog mart |
+| Host | `host.docker.internal` |
+| Port | `54422` |
+| Database name | `postgres` |
+| Username | `bi_reader` |
+| Password | `local-bi-reader` |
+| Schemas | Only these… `mart` |
+| Use a secure connection (SSL) | オフ |
+
+追加設定で接続プールがあれば **3**。Show でスキーマ `mart` だけが見えれば成功。`raw_vault` が見える、または `postgres` スーパーユーザーで繋いでいるときは、その接続を消して `bi_reader` で作り直す。
+
+### ダッシュボード
+
+SQL 質問を 2 つ作り、1 枚のダッシュボードに載せる。
+
+ピン地図:
+
+```sql
+select tst, lat, lon, trigger_code, accuracy_m, velocity_kmh, battery_pct
+from mart.mart_location_trail
+```
+
+Visualization → Map。`lat` / `lon` が緯度・経度になっていなければ、歯車 → Table Metadata で型を付ける。
+
+日次件数（日本時間）:
+
+```sql
+select (tst at time zone 'Asia/Tokyo')::date as day, count(*) as fixes
+from mart.mart_location_trail
+group by 1
+order by 1
+```
+
+`mart_location_trail` が無いときは、先に `make dbt-owntracks`。0 行なら materialize と dbt の未処理 inbox を確認する（[dbt-ci-setup.md](./dbt-ci-setup.md)）。
+
+## 2. 本番
+
+1. この migration を含む deploy（`db push`）が `bi_reader` を作る。パスワードはまだ空。
+2. Dashboard → **Vault**（または SQL）:
+
+```sql
+select vault.create_secret(
+  'ここに強いパスワード',
+  'bi_reader_password',
+  'bi_reader login for Metabase session pooler'
+);
+```
+
+既にあるときは `vault.update_secret` か Dashboard で値を更新する。
+
+3. **Deploy to Supabase** を 1 回走らせる。`ops.sync_bi_reader_password_from_vault()` がロールに反映する。Vault が空のときは deploy ログに warning が出て、他の処理は続く。
+
+任意: その deploy の環境に `BI_READER_PASSWORD` があると、deploy が Vault を upsert してから sync する。GitHub Actions ではリポジトリ secret `BI_READER_PASSWORD` を読む（空なら upsert しない）。
+
+4. Actions で `dbt build`（owntracks）を 1 回走らせ、post-hook の `GRANT` を既存 view に付ける。migration 時点で view が既にある場合は migration の `GRANT SELECT ON ALL TABLES` でも付く。
+
+5. Metabase の Postgres 接続:
+
+| フィールド | 値 |
+|------------|----|
+| Host | Dashboard → Connect → **Session pooler** のホスト |
+| Port | `5432` |
+| Database name | `postgres` |
+| Username | `bi_reader.<project-ref>` |
+| Password | Vault に入れた値 |
+| Schemas | `mart` のみ |
+| SSL | require |
+| 接続プール | 3 |
+
+Transaction pooler（ポート 6543）には繋がない。
+
+Network restrictions を有効にしているプロジェクトでは、Metabase を動かしているホストの IP を許可する。
+
+## 3. 常時起動
+
+Compose の H2 は手元用。VM や Metabase Cloud ではアプリ DB を別 Postgres にする。ホストは Supabase ではない。
+
+```text
+MB_DB_TYPE=postgres
+MB_DB_HOST=<metabase-app-db-host>
+MB_DB_PORT=5432
+MB_DB_DBNAME=metabase
+MB_DB_USER=metabase
+MB_DB_PASS=<app-db-password>
+JAVA_TIMEZONE=Asia/Tokyo
+```
+
+倉庫側の接続は §2 の `bi_reader` のまま。UI はログイン必須。地図の public link は作らない。イメージは `metabase/metabase:v0.64.4` をピンしたまま上げる。

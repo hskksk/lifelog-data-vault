@@ -2,7 +2,7 @@
 
 **前提:** Data Vault の **変換層（dbt）だけ Supabase 外**で実行する。それ以外（Postgres、ingest Webhook、Bronze、materialize、バッチメタ）を **Supabase** に載せる。
 
-関連: [overview.md](./overview.md), [owntracks.md](./owntracks.md)
+関連: [overview.md](./overview.md), [owntracks.md](./owntracks.md), [metabase.md](./metabase.md)
 
 ---
 
@@ -12,7 +12,7 @@
 |--------------------|-------------------------|
 | Postgres（staging / raw_vault / mart / ops スキーマ） | **dbt**（GitHub Actions またはローカル / 任意 VPS） |
 | Edge Function: OwnTracks ingest | dbt のスケジュール実行 |
-| Edge Function または Cron: materialize（Bronze → inbox） | Metabase 等 BI（将来・任意） |
+| Edge Function または Cron: materialize（Bronze → inbox） | **Metabase**（[metabase.md](./metabase.md)。接続ロール `bi_reader` だけ Supabase に置く） |
 | Storage: Bronze bucket（private） | |
 | Secrets / Cron 設定 | |
 
@@ -41,6 +41,7 @@ flowchart TB
   EF_MAT --> PG
   GH --> DBT
   DBT -->|Session pooler| PG
+  MB[Metabase] -->|bi_reader session pooler| PG
 ```
 
 **データの流れ**
@@ -48,6 +49,7 @@ flowchart TB
 1. **ingest:** 1 POST → Bronze 1 オブジェクト + `ops.ingest_batch`（`status=received`）
 2. **materialize:** Cron が Edge を起動 → 未処理 batch を読み Bronze → `staging.owntracks_location_inbox`
 3. **dbt:** Actions が `vault_loaded_at is null` の行を対象に Raw Vault / mart を更新（既存 dbt プロジェクト）
+4. **BI:** Metabase が `bi_reader` で `mart` だけを読む（[metabase.md](./metabase.md)）
 
 ---
 
@@ -61,7 +63,7 @@ flowchart TB
 | `staging` | owntracks_location_inbox 等 | **exposed しない** |
 | `raw_vault` | Hub / Link / Sat | **exposed しない** |
 | `business_vault` | bv_* | **exposed しない** |
-| `mart` | BI 用 view/table | 将来 Metabase 直結なら検討 |
+| `mart` | BI 用 view/table | **exposed しない**。Metabase は `bi_reader` で Postgres 直結（[metabase.md](./metabase.md)） |
 
 `config.toml` の `[api] schemas` から上記を **除外**し、パイプラインは **secret API key**（`sb_secret_...`、legacy `service_role` JWT は使わない）経由の Edge のみ。Anon/authenticated からは読めない。
 
@@ -234,7 +236,7 @@ jobs:
 
 **ローカル:** `pnpm --filter @lifelog/ingest-core build` のあと `.env` に Edge 用シークレットのみ載せ、`pnpm deploy`（要 `SUPABASE_*` 環境変数）。
 
-**手動で残す作業（deploy 外）:** Vault **`dbt_runner_password`**（初回）→ deploy で sync、Bronze **`config/person_map.yml`**。materialize Cron は deploy が Vault（`supabase_project_id` / `supabase_secret_key`）を更新。
+**手動で残す作業（deploy 外）:** Vault **`dbt_runner_password`** と **`bi_reader_password`**（初回）→ deploy で sync、Bronze **`config/person_map.yml`**。materialize Cron は deploy が Vault（`supabase_project_id` / `supabase_secret_key`）を更新。`BI_READER_PASSWORD` を deploy の環境に渡すと Vault も upsert する（[metabase-setup.md](../operations/metabase-setup.md)）。
 
 **OCI / cloudflared:** 本設計では **プロダクション対象外**。README に「Supabase ランタイム」を正と記載。
 
@@ -251,7 +253,7 @@ jobs:
 | `supabase db reset --remote` | **はい**（DB 全消し＋migration＋seed。`--no-seed` で seed だけ省略） |
 | Supabase **Branching** の Preview デプロイ | プロジェクト設定で Seed ステップを **有効にした場合のみ**（本番 main とは別経路） |
 
-`seed.sql` の内容は **`dbt_runner` にローカル専用パスワード `local-dbt-runner` を設定するだけ**。本番では migration でロール作成後、Dashboard SQL で別パスワードを設定する（README S4 手順）。
+`seed.sql` は **`dbt_runner` にローカル専用パスワード `local-dbt-runner`**、**`bi_reader` に `local-bi-reader`** を設定する。本番では migration でロール作成後、Dashboard の Vault で別パスワードを設定する（README S4、[metabase-setup.md](../operations/metabase-setup.md)）。
 
 参照: [Seeding your database](https://supabase.com/docs/guides/local-development/seeding-your-database)（seed は主にローカル reset 用）、[supabase/seed.sql](../../supabase/seed.sql) 先頭コメント。
 
@@ -264,6 +266,7 @@ jobs:
 - [x] スキーマを API から隔離 + RLS enabled — S1 `config.toml` + migrations
 - [ ] secret key / ingest Bearer をクライアント（OwnTracks）に渡さない（ingest は専用 Bearer のみ）
 - [x] GitHub Secret の DB URL は `dbt_runner` 専用ユーザー — migration + README
+- [x] BI は `bi_reader`（`mart` の SELECT のみ）。Data API に `mart` を出さない — migration + `config.toml`
 
 ---
 
