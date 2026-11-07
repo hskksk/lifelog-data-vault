@@ -8,7 +8,9 @@
     "ingest": "pnpm --filter @lifelog/ingest exec lifelog-ingest",
     "deploy": "tsx scripts/deploy.ts",
     "resolve-dbt-db-url": "tsx scripts/resolve-dbt-db-url.ts",
-    "resolve-dbt-connection": "tsx scripts/resolve-dbt-connection.ts"
+    "resolve-dbt-connection": "tsx scripts/resolve-dbt-connection.ts",
+    "test:bi-connection": "tsx scripts/lib/bi-connection.test.ts && tsx scripts/lib/metabase-remote.test.ts",
+    "metabase-connect-remote": "tsx scripts/metabase-add-remote.ts"
   },
   "devDependencies": {
     "dotenv": "^16.4.7",

@@ -11,9 +11,10 @@ begin
 end
 $$;
 
+-- Hosted postgres is not a superuser. ALTER ROLE ... NOSUPERUSER is rejected
+-- there (SQLSTATE 42501). CREATE ROLE already defaults to NOSUPERUSER.
 alter role bi_reader with
   login
-  nosuperuser
   nobypassrls
   nocreatedb
   nocreaterole

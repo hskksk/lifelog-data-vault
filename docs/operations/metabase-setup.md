@@ -12,7 +12,9 @@ make dbt-owntracks      # post-hook が mart.* に SELECT を付ける
 make metabase-up        # http://127.0.0.1:3000
 ```
 
-初回起動は JVM の立ち上がりで 1〜2 分かかることがある。止めるときは `make metabase-down`（ボリュームは残る。質問定義も残る）。ログは `make metabase-logs`。ポートを変えるときは `METABASE_PORT=3001 make metabase-up`。
+初回は Liquibase のマイグレーションで数分かかることがある。その間 `/api/health` は 503 で、画面はセットアップまで進まない。`make metabase-connect-remote` は 200 になるまで待つ。ブラウザは `http://127.0.0.1:3000` を開く。Docker はこのアドレスだけを公開する。止めるときは `make metabase-down`（ボリュームは残る。質問定義も残る）。ログは `make metabase-logs`。ポートを変えるときは `METABASE_PORT=3001 make metabase-up`。
+
+ログに `Database has migration lock` と出て再起動を繰り返すときは、前回の JVM がマイグレーションの途中で落ちてロックが H2 に残っている。`make metabase-up` は起動前にそのロックを外す。質問定義ごと捨ててやり直すときは `make metabase-reset`。
 
 ブラウザで管理者ユーザーを作る。これは H2（Docker volume `lifelog-metabase_metabase_data`）に保存される。Supabase のユーザーではない。
 
@@ -56,7 +58,9 @@ order by 1
 
 `mart_location_trail` が無いときは、先に `make dbt-owntracks`。0 行なら materialize と dbt の未処理 inbox を確認する（[dbt-ci-setup.md](./dbt-ci-setup.md)）。
 
-## 2. 本番
+## 2. 本番（手元の Metabase から hosted Supabase）
+
+同じ Metabase に、ローカルとは別のデータベース `lifelog mart (remote)` を足す。中身は hosted の `mart` だけ。
 
 1. この migration を含む deploy（`db push`）が `bi_reader` を作る。パスワードはまだ空。
 2. Dashboard → **Vault**（または SQL）:
@@ -77,18 +81,34 @@ select vault.create_secret(
 
 4. Actions で `dbt build`（owntracks）を 1 回走らせ、post-hook の `GRANT` を既存 view に付ける。migration 時点で view が既にある場合は migration の `GRANT SELECT ON ALL TABLES` でも付く。
 
-5. Metabase の Postgres 接続:
+5. Metabase を起動し、管理者ユーザーを作ったあと、倉庫を登録する。
+
+```bash
+make metabase-up
+# .env に SUPABASE_DB_PASSWORD, SUPABASE_PROJECT_REF,
+# および METABASE_API_KEY か METABASE_EMAIL + METABASE_PASSWORD
+# METABASE_URL を書くときは http://127.0.0.1:3000
+make metabase-connect-remote
+```
+
+このコマンドは dbt と同じ Session pooler URL を解決し、Vault の `bi_reader_password` で `bi_reader.<project-ref>` としてログインできることを確認してから、Metabase に `lifelog mart (remote)` を作る（既にあれば更新する）。同期スキーマは `mart` のみ。SSL は require。ポートは 5432。
+
+画面で足すときの値は次のとおり。ホスト欄は pooler の公開名。Metabase コンテナからもその名前で届く。
 
 | フィールド | 値 |
 |------------|----|
-| Host | Dashboard → Connect → **Session pooler** のホスト |
+| Display name | lifelog mart (remote) |
+| Host | Session pooler のホスト |
 | Port | `5432` |
 | Database name | `postgres` |
 | Username | `bi_reader.<project-ref>` |
 | Password | Vault に入れた値 |
 | Schemas | `mart` のみ |
 | SSL | require |
+| SSL mode | require |
 | 接続プール | 3 |
+
+`pnpm metabase-connect-remote --print` は同じ接続を JSON で出す（パスワードを含む。ログに残さない）。
 
 Transaction pooler（ポート 6543）には繋がない。
 
