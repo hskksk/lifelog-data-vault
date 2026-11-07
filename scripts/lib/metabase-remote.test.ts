@@ -7,6 +7,7 @@ import {
   describeFetchError,
   normalizeMetabaseUrl,
   redactSecret,
+  resolveMetabaseAuth,
   upsertRemoteDatabase,
   waitForMetabase,
 } from "./metabase-remote.ts";
@@ -58,12 +59,21 @@ async function withServer(
   }
 }
 
-function assertPayload(body: string) {
+function connectionDetails(body: string, nested: boolean): Record<string, unknown> {
   const parsed = JSON.parse(body) as {
-    engine: string;
-    details: Record<string, unknown>;
+    engine?: string;
+    details: Record<string, unknown> | { engine: string; details: Record<string, unknown> };
   };
-  const details = parsed.details ?? parsed;
+  if (nested) {
+    const wrapped = parsed.details as { engine: string; details: Record<string, unknown> };
+    assert.equal(wrapped.engine, "postgres");
+    return wrapped.details;
+  }
+  assert.equal(parsed.engine, "postgres");
+  return parsed.details as Record<string, unknown>;
+}
+
+function assertConnection(details: Record<string, unknown>) {
   assert.equal(details.host, conn.host);
   assert.equal(details.port, 5432);
   assert.equal(details.user, conn.user);
@@ -73,11 +83,19 @@ function assertPayload(body: string) {
   assert.equal(details["schema-filters-patterns"], "mart");
 }
 
+function assertPayload(body: string) {
+  assertConnection(connectionDetails(body, false));
+}
+
+function assertValidateBody(body: string) {
+  assertConnection(connectionDetails(body, true));
+}
+
 async function main() {
 await withServer(
   (req, res, body) => {
     if (req.url === "/api/database/validate" && req.method === "POST") {
-      assertPayload(body);
+      assertValidateBody(body);
       send(res, 200, { valid: true });
       return;
     }
@@ -129,6 +147,22 @@ await withServer(
   },
 );
 assert.equal(synced, true);
+
+await withServer(
+  (req, res) => {
+    send(res, 401, "Unauthenticated");
+  },
+  async (baseUrl) => {
+    await assert.rejects(
+      () => upsertRemoteDatabase(baseUrl, headers, conn),
+      (err: unknown) => {
+        assert.match(String(err), /Metabase rejected the API login \(401\)/);
+        assert.equal(/bi_reader login/.test(String(err)), false);
+        return true;
+      },
+    );
+  },
+);
 
 await withServer(
   (req, res) => {
@@ -184,6 +218,60 @@ await assert.rejects(
   }),
   /did not become ready/,
 );
+
+await withServer(
+  (req, res) => {
+    if (req.url === "/api/user/current") {
+      const key = req.headers["x-api-key"];
+      if (key === "mb_good") {
+        send(res, 200, { is_superuser: true });
+        return;
+      }
+      send(res, 401, "Unauthenticated");
+      return;
+    }
+    send(res, 404, {});
+  },
+  async (baseUrl) => {
+    const headers = await resolveMetabaseAuth(baseUrl, { apiKey: "mb_good" }, { log: () => {} });
+    assert.equal(headers["x-api-key"], "mb_good");
+    await assert.rejects(
+      () => resolveMetabaseAuth(baseUrl, { apiKey: "not-a-key" }, { log: () => {} }),
+      /does not start with mb_/,
+    );
+  },
+);
+
+let fellBack = false;
+await withServer(
+  (req, res, body) => {
+    if (req.url === "/api/user/current" && req.headers["x-api-key"]) {
+      send(res, 401, "Unauthenticated");
+      return;
+    }
+    if (req.url === "/api/session" && req.method === "POST") {
+      const parsed = JSON.parse(body) as { username: string };
+      assert.equal(parsed.username, "admin@example.com");
+      send(res, 200, { id: "11111111-1111-1111-1111-111111111111" });
+      return;
+    }
+    if (req.url === "/api/user/current" && req.headers["x-metabase-session"]) {
+      fellBack = true;
+      send(res, 200, { is_superuser: true });
+      return;
+    }
+    send(res, 404, {});
+  },
+  async (baseUrl) => {
+    const headers = await resolveMetabaseAuth(
+      baseUrl,
+      { apiKey: "mb_stale", email: "admin@example.com", password: "secret1" },
+      { log: () => {} },
+    );
+    assert.equal(headers["X-Metabase-Session"], "11111111-1111-1111-1111-111111111111");
+  },
+);
+assert.equal(fellBack, true);
 
 console.log("metabase-remote.test.ts ok");
 }

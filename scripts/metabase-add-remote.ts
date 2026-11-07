@@ -13,8 +13,8 @@ import {
 } from "./lib/bi-connection.ts";
 import type { DbtPostgresConnection } from "./lib/dbt-connection.ts";
 import {
-  describeFetchError,
   normalizeMetabaseUrl,
+  resolveMetabaseAuth,
   upsertRemoteDatabase,
   waitForMetabase,
 } from "./lib/metabase-remote.ts";
@@ -42,40 +42,12 @@ function metabaseBaseUrl(): string {
   return normalizeMetabaseUrl(raw);
 }
 
-async function authHeaders(baseUrl: string): Promise<Record<string, string>> {
-  const apiKey = process.env.METABASE_API_KEY?.trim();
-  if (apiKey) {
-    return { "x-api-key": apiKey, "content-type": "application/json" };
-  }
-  const email = process.env.METABASE_EMAIL?.trim();
-  const password = process.env.METABASE_PASSWORD ?? "";
-  if (!email || !password) {
-    throw new Error(
-      "Set METABASE_API_KEY, or METABASE_EMAIL and METABASE_PASSWORD. Pass --print to emit the connection JSON instead.",
-    );
-  }
-  let res: Response;
-  try {
-    res = await fetch(`${baseUrl}/api/session`, {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ username: email, password }),
-      signal: AbortSignal.timeout(30_000),
-    });
-  } catch (err) {
-    throw new Error(
-      `Metabase is not reachable at ${baseUrl}. Start it with make metabase-up and finish the admin setup. ${describeFetchError(err)}`,
-    );
-  }
-  if (!res.ok) {
-    const text = await res.text();
-    throw new Error(`Metabase login failed (${res.status}): ${text.split(password).join("***").slice(0, 500)}`);
-  }
-  const body = (await res.json()) as { id?: string };
-  if (!body.id) {
-    throw new Error("Metabase login did not return a session id.");
-  }
-  return { "X-Metabase-Session": body.id, "content-type": "application/json" };
+function authHeaders(baseUrl: string): Promise<Record<string, string>> {
+  return resolveMetabaseAuth(baseUrl, {
+    apiKey: process.env.METABASE_API_KEY,
+    email: process.env.METABASE_EMAIL,
+    password: process.env.METABASE_PASSWORD,
+  });
 }
 
 async function main() {
