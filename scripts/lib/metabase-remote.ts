@@ -91,6 +91,97 @@ async function errorText(res: Response, secret: string): Promise<string> {
   return redactSecret(text.slice(0, 500), secret);
 }
 
+const JSON_HEADERS = { "content-type": "application/json" };
+
+/** Metabase 0.64 reads `{:details {:engine ... :details ...}}` on this route. */
+export function validateDatabaseBody(payload: { engine: string; details: Record<string, unknown> }) {
+  return { details: { engine: payload.engine, details: payload.details } };
+}
+
+async function currentUserOk(
+  root: string,
+  headers: AuthHeaders,
+  fetchImpl: typeof fetch,
+): Promise<boolean> {
+  const res = await fetchImpl(`${root}/api/user/current`, {
+    headers,
+    signal: AbortSignal.timeout(30_000),
+  });
+  if (!res.ok) return false;
+  const body = (await res.json()) as { is_superuser?: boolean };
+  if (body.is_superuser === false) {
+    throw new Error(
+      "This Metabase login is not an admin. Database registration needs the admin user, or an API key in the Administrators group.",
+    );
+  }
+  return true;
+}
+
+export async function resolveMetabaseAuth(
+  baseUrl: string,
+  env: { apiKey?: string; email?: string; password?: string },
+  opts?: { fetchImpl?: typeof fetch; log?: (line: string) => void },
+): Promise<AuthHeaders> {
+  const fetchImpl = opts?.fetchImpl ?? fetch;
+  const log = opts?.log ?? ((line: string) => process.stderr.write(line + "\n"));
+  const root = baseUrl.replace(/\/$/, "");
+  const apiKey = env.apiKey?.trim();
+  const email = env.email?.trim();
+  const password = env.password ?? "";
+
+  if (apiKey) {
+    const headers = { "x-api-key": apiKey, ...JSON_HEADERS };
+    if (await currentUserOk(root, headers, fetchImpl)) return headers;
+    if (email && password) {
+      log("METABASE_API_KEY was rejected. Signing in with METABASE_EMAIL.");
+    } else {
+      const shape = apiKey.startsWith("mb_")
+        ? "The key was not accepted."
+        : "The value does not start with mb_.";
+      throw new Error(
+        `Metabase rejected METABASE_API_KEY (401 Unauthenticated). ${shape} ` +
+          "Create one in Admin → Settings → Authentication → API keys, in the Administrators group. " +
+          "Or leave METABASE_API_KEY empty and set METABASE_EMAIL and METABASE_PASSWORD to the admin user from http://127.0.0.1:3000.",
+      );
+    }
+  }
+
+  if (!email || !password) {
+    throw new Error(
+      "Set METABASE_API_KEY, or METABASE_EMAIL and METABASE_PASSWORD. Pass --print to emit the connection JSON instead.",
+    );
+  }
+
+  let res: Response;
+  try {
+    res = await fetchImpl(`${root}/api/session`, {
+      method: "POST",
+      headers: JSON_HEADERS,
+      body: JSON.stringify({ username: email, password }),
+      signal: AbortSignal.timeout(30_000),
+    });
+  } catch (err) {
+    throw new Error(
+      `Metabase is not reachable at ${root}. Start it with make metabase-up and finish the admin setup. ${describeFetchError(err)}`,
+    );
+  }
+  if (!res.ok) {
+    const text = redactSecret(await res.text(), password).slice(0, 500);
+    throw new Error(`Metabase login failed (${res.status}): ${text}`);
+  }
+  const body = (await res.json()) as { id?: string };
+  if (!body.id) {
+    throw new Error("Metabase login did not return a session id.");
+  }
+  const headers = { "X-Metabase-Session": body.id, ...JSON_HEADERS };
+  if (!(await currentUserOk(root, headers, fetchImpl))) {
+    throw new Error(
+      "Metabase accepted the password and then rejected the session. Finish the admin setup at http://127.0.0.1:3000 and sign in again.",
+    );
+  }
+  return headers;
+}
+
 export async function upsertRemoteDatabase(
   baseUrl: string,
   headers: AuthHeaders,
@@ -103,9 +194,16 @@ export async function upsertRemoteDatabase(
   const validate = await fetchImpl(`${root}/api/database/validate`, {
     method: "POST",
     headers,
-    body: JSON.stringify({ engine: payload.engine, details: payload.details }),
+    body: JSON.stringify(validateDatabaseBody(payload)),
     signal: AbortSignal.timeout(60_000),
   });
+  if (validate.status === 401 || validate.status === 403) {
+    throw new Error(
+      `Metabase rejected the API login (${validate.status}). ` +
+        "Finish the admin user at http://127.0.0.1:3000, then set METABASE_API_KEY (starts with mb_, Administrators group) or METABASE_EMAIL and METABASE_PASSWORD. " +
+        (await errorText(validate, conn.password)),
+    );
+  }
   if (!validate.ok) {
     throw new Error(
       `Remote Postgres rejected the bi_reader login (${validate.status}). ` +

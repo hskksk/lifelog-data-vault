@@ -91,6 +91,8 @@ make metabase-up
 make metabase-connect-remote
 ```
 
+`METABASE_API_KEY` があるとその値だけを送る。Admin → Settings → Authentication → API keys で Administrators グループに作り、`mb_` で始まる値を入れる。画面に一度だけ出る。キーが無いときはその行を空にして、セットアップ画面で作った管理者のメールとパスワードを `METABASE_EMAIL` / `METABASE_PASSWORD` に書く。401 `Unauthenticated` は Metabase のログイン拒否で、倉庫のパスワードとは別。
+
 このコマンドは dbt と同じ Session pooler URL を解決し、Vault の `bi_reader_password` で `bi_reader.<project-ref>` としてログインできることを確認してから、Metabase に `lifelog mart (remote)` を作る（既にあれば更新する）。同期スキーマは `mart` のみ。SSL は require。ポートは 5432。
 
 画面で足すときの値は次のとおり。ホスト欄は pooler の公開名。Metabase コンテナからもその名前で届く。
