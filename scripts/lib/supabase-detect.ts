@@ -9,13 +9,13 @@ export function detectProjectRef(): string {
     });
     const projects: Array<{ id: string; name: string; linked?: boolean }> = JSON.parse(out);
     if (projects.length === 1) {
-      console.log(`Auto-detected project: ${projects[0].name} (${projects[0].id})`);
+      console.error(`Auto-detected project: ${projects[0].name} (${projects[0].id})`);
       return projects[0].id;
     }
     if (projects.length > 1) {
       const linked = projects.find((p) => p.linked);
       if (linked) {
-        console.log(`Auto-detected linked project: ${linked.name} (${linked.id})`);
+        console.error(`Auto-detected linked project: ${linked.name} (${linked.id})`);
         return linked.id;
       }
       console.error(
@@ -44,12 +44,12 @@ export function detectSecretKey(projectRef: string): string {
     const keys: Array<{ name: string; api_key: string; type?: string }> = JSON.parse(out);
     const byName = keys.find((k) => k.name === "default" || k.name === "secret");
     if (byName?.api_key) {
-      console.log(`Auto-detected secret key (${byName.name}) from supabase projects api-keys.`);
+      console.error(`Auto-detected secret key (${byName.name}) from supabase projects api-keys.`);
       return byName.api_key;
     }
     const byType = keys.find((k) => k.type === "secret");
     if (byType?.api_key) {
-      console.log("Auto-detected secret key from supabase projects api-keys.");
+      console.error("Auto-detected secret key from supabase projects api-keys.");
       return byType.api_key;
     }
   } catch {
