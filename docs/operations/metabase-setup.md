@@ -12,7 +12,7 @@ make dbt-owntracks      # post-hook が mart.* に SELECT を付ける
 make metabase-up        # http://127.0.0.1:3000
 ```
 
-初回起動は JVM の立ち上がりで 1〜2 分かかることがある。止めるときは `make metabase-down`（ボリュームは残る。質問定義も残る）。ログは `make metabase-logs`。ポートを変えるときは `METABASE_PORT=3001 make metabase-up`。
+初回起動は JVM の立ち上がりで 1〜2 分かかることがある。`make metabase-connect-remote` はその間 `/api/health` を待つ。ブラウザは `http://127.0.0.1:3000` を開く。Docker はこのアドレスだけを公開する。止めるときは `make metabase-down`（ボリュームは残る。質問定義も残る）。ログは `make metabase-logs`。ポートを変えるときは `METABASE_PORT=3001 make metabase-up`。
 
 ブラウザで管理者ユーザーを作る。これは H2（Docker volume `lifelog-metabase_metabase_data`）に保存される。Supabase のユーザーではない。
 
@@ -85,6 +85,7 @@ select vault.create_secret(
 make metabase-up
 # .env に SUPABASE_DB_PASSWORD, SUPABASE_PROJECT_REF,
 # および METABASE_API_KEY か METABASE_EMAIL + METABASE_PASSWORD
+# METABASE_URL を書くときは http://127.0.0.1:3000
 make metabase-connect-remote
 ```
 

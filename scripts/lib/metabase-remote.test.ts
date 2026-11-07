@@ -3,7 +3,13 @@ import { createServer, type IncomingMessage, type ServerResponse } from "node:ht
 import type { AddressInfo } from "node:net";
 import type { DbtPostgresConnection } from "./dbt-connection.ts";
 import { REMOTE_MART_DATABASE_NAME } from "./bi-connection.ts";
-import { redactSecret, upsertRemoteDatabase } from "./metabase-remote.ts";
+import {
+  describeFetchError,
+  normalizeMetabaseUrl,
+  redactSecret,
+  upsertRemoteDatabase,
+  waitForMetabase,
+} from "./metabase-remote.ts";
 
 const conn: DbtPostgresConnection = {
   host: "aws-0-ap-northeast-1.pooler.supabase.com",
@@ -142,6 +148,43 @@ await withServer(
 );
 
 assert.equal(redactSecret("keep", ""), "keep");
+assert.equal(normalizeMetabaseUrl("http://localhost:3000"), "http://127.0.0.1:3000");
+assert.equal(normalizeMetabaseUrl("http://127.0.0.1:3001/"), "http://127.0.0.1:3001");
+assert.equal(normalizeMetabaseUrl("http://[::1]:3000/"), "http://127.0.0.1:3000");
+
+const refused = new TypeError("fetch failed");
+refused.cause = Object.assign(new Error("connect ECONNREFUSED 127.0.0.1:3000"), { code: "ECONNREFUSED" });
+assert.match(describeFetchError(refused), /ECONNREFUSED/);
+
+let healthCalls = 0;
+await waitForMetabase("http://127.0.0.1:3000", {
+  timeoutMs: 10_000,
+  intervalMs: 1,
+  now: () => 0,
+  sleep: async () => {},
+  log: () => {},
+  fetchImpl: (async () => {
+    healthCalls += 1;
+    if (healthCalls < 2) throw refused;
+    return new Response("ok", { status: 200 });
+  }) as typeof fetch,
+});
+assert.equal(healthCalls, 2);
+
+await assert.rejects(
+  () => waitForMetabase("http://127.0.0.1:3000", {
+    timeoutMs: 0,
+    intervalMs: 1,
+    now: () => 0,
+    sleep: async () => {},
+    log: () => {},
+    fetchImpl: (async () => {
+      throw refused;
+    }) as typeof fetch,
+  }),
+  /did not become ready/,
+);
+
 console.log("metabase-remote.test.ts ok");
 }
 

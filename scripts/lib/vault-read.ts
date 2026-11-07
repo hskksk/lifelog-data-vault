@@ -2,11 +2,31 @@ import { execFileSync } from "node:child_process";
 
 type QueryJsonRow = Record<string, unknown>;
 
+/** Newer CLIs deprecate `--db-url` in favor of `--remote=<url>` (removed in v4). */
+let dbQueryUrlFlag: "remote" | "db-url" | undefined;
+
+function dbQueryUrlArg(dbUrl: string): string {
+  if (!dbQueryUrlFlag) {
+    let help = "";
+    try {
+      help = execFileSync("supabase", ["db", "query", "--help"], {
+        encoding: "utf8",
+        stdio: ["ignore", "pipe", "pipe"],
+      });
+    } catch (err) {
+      const thrown = err as { stdout?: string; stderr?: string };
+      help = `${thrown.stdout ?? ""}\n${thrown.stderr ?? ""}`;
+    }
+    dbQueryUrlFlag = help.includes("--remote") ? "remote" : "db-url";
+  }
+  return dbQueryUrlFlag === "remote" ? `--remote=${dbUrl}` : `--db-url=${dbUrl}`;
+}
+
 /** Run one SQL statement via linked/pooler URL; expects a single scalar cell. */
 export function queryScalar(dbUrl: string, sql: string): string | null {
   const raw = execFileSync(
     "supabase",
-    ["db", "query", "--db-url", dbUrl, "--yes", "-o", "json"],
+    ["db", "query", dbQueryUrlArg(dbUrl), "--yes", "-o", "json"],
     { input: sql, encoding: "utf8", env: process.env },
   ).trim();
 

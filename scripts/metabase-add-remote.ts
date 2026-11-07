@@ -12,7 +12,12 @@ import {
   biReaderConnectionFromPostgresPooler,
 } from "./lib/bi-connection.ts";
 import type { DbtPostgresConnection } from "./lib/dbt-connection.ts";
-import { upsertRemoteDatabase } from "./lib/metabase-remote.ts";
+import {
+  describeFetchError,
+  normalizeMetabaseUrl,
+  upsertRemoteDatabase,
+  waitForMetabase,
+} from "./lib/metabase-remote.ts";
 import { detectProjectRef } from "./lib/supabase-detect.ts";
 import { resolveDbPushUrl } from "./lib/supabase-pooler-url.ts";
 import { readVaultSecret } from "./lib/vault-read.ts";
@@ -34,7 +39,7 @@ async function resolveConnection(): Promise<DbtPostgresConnection> {
 function metabaseBaseUrl(): string {
   const raw = process.env.METABASE_URL?.trim()
     || `http://127.0.0.1:${process.env.METABASE_PORT?.trim() || "3000"}`;
-  return raw.replace(/\/$/, "");
+  return normalizeMetabaseUrl(raw);
 }
 
 async function authHeaders(baseUrl: string): Promise<Record<string, string>> {
@@ -59,7 +64,7 @@ async function authHeaders(baseUrl: string): Promise<Record<string, string>> {
     });
   } catch (err) {
     throw new Error(
-      `Metabase is not reachable at ${baseUrl}. Start it with make metabase-up and finish the admin setup. ${err instanceof Error ? err.message : err}`,
+      `Metabase is not reachable at ${baseUrl}. Start it with make metabase-up and finish the admin setup. ${describeFetchError(err)}`,
     );
   }
   if (!res.ok) {
@@ -80,6 +85,7 @@ async function main() {
     return;
   }
   const baseUrl = metabaseBaseUrl();
+  await waitForMetabase(baseUrl);
   const headers = await authHeaders(baseUrl);
   await upsertRemoteDatabase(baseUrl, headers, conn);
   console.log(

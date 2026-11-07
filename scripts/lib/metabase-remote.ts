@@ -12,6 +12,72 @@ export function redactSecret(text: string, secret: string): string {
   return text.split(secret).join("***");
 }
 
+/** Docker publishes 127.0.0.1 only. macOS resolves localhost to ::1 first. */
+export function normalizeMetabaseUrl(raw: string): string {
+  let url: URL;
+  try {
+    url = new URL(raw);
+  } catch {
+    throw new Error(`METABASE_URL is not a valid URL: ${raw}`);
+  }
+  if (url.protocol !== "http:" && url.protocol !== "https:") {
+    throw new Error(`METABASE_URL must be http or https: ${raw}`);
+  }
+  const host = url.hostname.replace(/^\[|\]$/g, "");
+  if (host === "localhost" || host === "::1") {
+    url.hostname = "127.0.0.1";
+  }
+  return url.toString().replace(/\/$/, "");
+}
+
+export function describeFetchError(err: unknown): string {
+  if (!(err instanceof Error)) return String(err);
+  const cause = err.cause;
+  if (cause instanceof Error) {
+    const code = "code" in cause ? String((cause as { code?: unknown }).code ?? "") : "";
+    return [err.message, code, cause.message].filter(Boolean).join(" ");
+  }
+  return err.message;
+}
+
+export async function waitForMetabase(
+  baseUrl: string,
+  opts?: {
+    timeoutMs?: number;
+    intervalMs?: number;
+    fetchImpl?: typeof fetch;
+    now?: () => number;
+    sleep?: (ms: number) => Promise<void>;
+    log?: (line: string) => void;
+  },
+): Promise<void> {
+  const timeoutMs = opts?.timeoutMs ?? 180_000;
+  const intervalMs = opts?.intervalMs ?? 2_000;
+  const fetchImpl = opts?.fetchImpl ?? fetch;
+  const now = opts?.now ?? Date.now;
+  const sleep = opts?.sleep ?? ((ms: number) => new Promise((resolve) => setTimeout(resolve, ms)));
+  const log = opts?.log ?? ((line: string) => process.stderr.write(line + "\n"));
+  const deadline = now() + timeoutMs;
+  let last = "no response";
+  log(`Waiting for Metabase at ${baseUrl}. The first start often takes 1–2 minutes.`);
+  while (now() < deadline) {
+    try {
+      const res = await fetchImpl(`${baseUrl}/api/health`, { signal: AbortSignal.timeout(5_000) });
+      if (res.ok) return;
+      last = `HTTP ${res.status}`;
+    } catch (err) {
+      last = describeFetchError(err);
+    }
+    if (now() + intervalMs >= deadline) break;
+    await sleep(intervalMs);
+  }
+  throw new Error(
+    `Metabase did not become ready at ${baseUrl} (${last}). ` +
+      "The JVM often needs 1–2 minutes after make metabase-up. Check make metabase-logs. " +
+      "Open http://127.0.0.1:3000. Docker publishes that address.",
+  );
+}
+
 export function databaseRows(body: unknown): DatabaseRow[] {
   if (Array.isArray(body)) return body as DatabaseRow[];
   if (body && typeof body === "object" && Array.isArray((body as { data?: unknown }).data)) {
