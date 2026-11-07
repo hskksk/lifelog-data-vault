@@ -12,7 +12,9 @@ make dbt-owntracks      # post-hook が mart.* に SELECT を付ける
 make metabase-up        # http://127.0.0.1:3000
 ```
 
-初回起動は JVM の立ち上がりで 1〜2 分かかることがある。`make metabase-connect-remote` はその間 `/api/health` を待つ。ブラウザは `http://127.0.0.1:3000` を開く。Docker はこのアドレスだけを公開する。止めるときは `make metabase-down`（ボリュームは残る。質問定義も残る）。ログは `make metabase-logs`。ポートを変えるときは `METABASE_PORT=3001 make metabase-up`。
+初回は Liquibase のマイグレーションで数分かかることがある。その間 `/api/health` は 503 で、画面はセットアップまで進まない。`make metabase-connect-remote` は 200 になるまで待つ。ブラウザは `http://127.0.0.1:3000` を開く。Docker はこのアドレスだけを公開する。止めるときは `make metabase-down`（ボリュームは残る。質問定義も残る）。ログは `make metabase-logs`。ポートを変えるときは `METABASE_PORT=3001 make metabase-up`。
+
+ログに `Database has migration lock` と出て再起動を繰り返すときは、前回の JVM がマイグレーションの途中で落ちてロックが H2 に残っている。`make metabase-up` は起動前にそのロックを外す。質問定義ごと捨ててやり直すときは `make metabase-reset`。
 
 ブラウザで管理者ユーザーを作る。これは H2（Docker volume `lifelog-metabase_metabase_data`）に保存される。Supabase のユーザーではない。
 

@@ -51,7 +51,7 @@ export async function waitForMetabase(
     log?: (line: string) => void;
   },
 ): Promise<void> {
-  const timeoutMs = opts?.timeoutMs ?? 180_000;
+  const timeoutMs = opts?.timeoutMs ?? 360_000;
   const intervalMs = opts?.intervalMs ?? 2_000;
   const fetchImpl = opts?.fetchImpl ?? fetch;
   const now = opts?.now ?? Date.now;
@@ -59,7 +59,7 @@ export async function waitForMetabase(
   const log = opts?.log ?? ((line: string) => process.stderr.write(line + "\n"));
   const deadline = now() + timeoutMs;
   let last = "no response";
-  log(`Waiting for Metabase at ${baseUrl}. The first start often takes 1–2 minutes.`);
+  log(`Waiting for Metabase at ${baseUrl}. The first migration often takes a few minutes.`);
   while (now() < deadline) {
     try {
       const res = await fetchImpl(`${baseUrl}/api/health`, { signal: AbortSignal.timeout(5_000) });
@@ -73,7 +73,7 @@ export async function waitForMetabase(
   }
   throw new Error(
     `Metabase did not become ready at ${baseUrl} (${last}). ` +
-      "The JVM often needs 1–2 minutes after make metabase-up. Check make metabase-logs. " +
+      "The first migration often takes a few minutes after make metabase-up. Check make metabase-logs. " +
       "Open http://127.0.0.1:3000. Docker publishes that address.",
   );
 }

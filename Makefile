@@ -5,7 +5,7 @@ SUPABASE_START_EXCLUDE ?= logflare,vector,realtime
 
 COMPOSE_METABASE = docker compose -f deploy/docker/docker-compose.metabase.yml
 
-.PHONY: up down migrate ingest-core-build supabase-start supabase-stop supabase-reset supabase-functions-serve dbt-parse dbt-owntracks lint test demo-owntracks demo-owntracks-edge demo-materialize-edge metabase-up metabase-down metabase-logs metabase-connect-remote
+.PHONY: up down migrate ingest-core-build supabase-start supabase-stop supabase-reset supabase-functions-serve dbt-parse dbt-owntracks lint test demo-owntracks demo-owntracks-edge demo-materialize-edge metabase-up metabase-down metabase-reset metabase-logs metabase-connect-remote
 
 up:
 	$(COMPOSE) up -d
@@ -64,6 +64,11 @@ metabase-up:
 
 metabase-down:
 	$(COMPOSE_METABASE) down
+
+# Deletes the local H2 app database (questions and the Metabase admin user).
+metabase-reset:
+	$(COMPOSE_METABASE) down -v
+	$(COMPOSE_METABASE) up -d
 
 metabase-logs:
 	$(COMPOSE_METABASE) logs -f metabase

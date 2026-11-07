@@ -108,6 +108,6 @@ SQL は [セットアップ手順](../operations/metabase-setup.md) に書く。
 | `scripts/deploy.ts` | 本番 Vault upsert（任意）と sync |
 | `packages/dbt/macros/grant_mart_to_bi_reader.sql` | mart モデルの `SELECT` |
 | `packages/dbt/dbt_project.yml` | marts の post-hook |
-| `deploy/docker/docker-compose.metabase.yml` | ローカル Metabase |
+| `deploy/docker/docker-compose.metabase.yml` | ローカル Metabase（ヒープ 2GB。起動前に残った Liquibase ロックを外す） |
 | `scripts/metabase-add-remote.ts` | 本番 `mart` を Metabase に登録 |
 | `Makefile` | `metabase-up` / `metabase-down` / `metabase-logs` / `metabase-connect-remote` |
