@@ -79,7 +79,7 @@ select vault.create_secret(
 
 任意: その deploy の環境に `BI_READER_PASSWORD` があると、deploy が Vault を upsert してから sync する。GitHub Actions ではリポジトリ secret `BI_READER_PASSWORD` を読む（空なら upsert しない）。
 
-4. Actions で `dbt build`（owntracks）を 1 回走らせ、post-hook の `GRANT` を既存 view に付ける。migration 時点で view が既にある場合は migration の `GRANT SELECT ON ALL TABLES` でも付く。
+4. Actions で `dbt build`（owntracks）を 1 回走らせる。post-hook が、その実行で作った mart の view に `SELECT` を付ける。`bi_reader` より前に作った view は `20261107233000_bi_reader_grant_as_owner.sql` が所有者（`dbt_runner`）になって付け直す。
 
 5. Metabase を起動し、管理者ユーザーを作ったあと、倉庫を登録する。
 
@@ -94,6 +94,8 @@ make metabase-connect-remote
 `METABASE_API_KEY` があるとその値だけを送る。Admin → Settings → Authentication → API keys で Administrators グループに作り、`mb_` で始まる値を入れる。画面に一度だけ出る。キーが無いときはその行を空にして、セットアップ画面で作った管理者のメールとパスワードを `METABASE_EMAIL` / `METABASE_PASSWORD` に書く。401 `Unauthenticated` は Metabase のログイン拒否で、倉庫のパスワードとは別。
 
 このコマンドは dbt と同じ Session pooler URL を解決し、Vault の `bi_reader_password` で `bi_reader.<project-ref>` としてログインできることを確認してから、Metabase に `lifelog mart (remote)` を作る（既にあれば更新する）。同期スキーマは `mart` のみ。SSL は require。ポートは 5432。
+
+画面が「このデータベースにはテーブルがありません」のときは、`bi_reader` が `SELECT` できる relation が同期結果に無い。上記の owner grant を deploy したあと、Admin → Databases → そのデータベースの Sync database schema now を押す。`make metabase-connect-remote` をもう一度実行しても同じ同期が走る。
 
 画面で足すときの値は次のとおり。ホスト欄は pooler の公開名。Metabase コンテナからもその名前で届く。
 

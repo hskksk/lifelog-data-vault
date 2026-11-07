@@ -50,7 +50,7 @@ flowchart LR
 
 `mart.mart_location_trail` は `raw_vault` を参照する view。Postgres の既定は `security_invoker = false` で、中身は **view 所有者**の権限で実行される。dbt の post-hook（[`grant_mart_to_bi_reader`](../../packages/dbt/macros/grant_mart_to_bi_reader.sql)）が view に `security_invoker = false` を明示し、`bi_reader` に `SELECT` を付ける。本番の dbt は `dbt_runner` で走るので、所有者は `dbt_runner`。`bi_reader` の SQL から `raw_vault` を直接は読めない。
 
-`dbt_runner` が後から作るオブジェクトへの default privileges は、migration が張れるときだけ張る。ホストされた Supabase の `postgres` が権限不足のときは notice にして止めない。その場合も post-hook が `GRANT` する。`postgres` が作る `mart` オブジェクトには default privileges で `SELECT` を付ける。
+`dbt_runner` が後から作るオブジェクトへの default privileges は、そのロールになれるときだけ張る（`20261107233000_bi_reader_grant_as_owner.sql`）。ホストされた Supabase の `postgres` は `dbt_runner` 所有の view に `GRANT` できない。`postgres` が作る `mart` オブジェクトには default privileges で `SELECT` を付ける。post-hook は、ロールが既にある状態の dbt 実行でも同じ `GRANT` をする。
 
 `bi_reader` ロールが無い DB（レガシー Compose Postgres）では post-hook は何もしない。
 
@@ -104,6 +104,7 @@ SQL は [セットアップ手順](../operations/metabase-setup.md) に書く。
 | ファイル | 役割 |
 |----------|------|
 | `supabase/migrations/20261107143000_bi_reader_role.sql` | ロール、GRANT、sync 関数 |
+| `supabase/migrations/20261107233000_bi_reader_grant_as_owner.sql` | `dbt_runner` 所有の mart view に `SELECT` を付け直す |
 | `supabase/seed.sql` | ローカルパスワード |
 | `scripts/deploy.ts` | 本番 Vault upsert（任意）と sync |
 | `packages/dbt/macros/grant_mart_to_bi_reader.sql` | mart モデルの `SELECT` |
