@@ -17,6 +17,8 @@ services:
       MB_DB_FILE: /metabase-data/metabase.db
       JAVA_TIMEZONE: Asia/Tokyo
       JAVA_OPTS: "-Xmx1g"
+      # Warehouse pool (local and hosted). bi_reader allows 10 connections.
+      MB_JDBC_DATA_WAREHOUSE_MAX_CONNECTION_POOL_SIZE: "3"
     volumes:
       - metabase_data:/metabase-data
     extra_hosts:

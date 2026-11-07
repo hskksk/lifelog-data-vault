@@ -5,7 +5,7 @@ SUPABASE_START_EXCLUDE ?= logflare,vector,realtime
 
 COMPOSE_METABASE = docker compose -f deploy/docker/docker-compose.metabase.yml
 
-.PHONY: up down migrate ingest-core-build supabase-start supabase-stop supabase-reset supabase-functions-serve dbt-parse dbt-owntracks lint test demo-owntracks demo-owntracks-edge demo-materialize-edge metabase-up metabase-down metabase-logs
+.PHONY: up down migrate ingest-core-build supabase-start supabase-stop supabase-reset supabase-functions-serve dbt-parse dbt-owntracks lint test demo-owntracks demo-owntracks-edge demo-materialize-edge metabase-up metabase-down metabase-logs metabase-connect-remote
 
 up:
 	$(COMPOSE) up -d
@@ -67,6 +67,9 @@ metabase-down:
 
 metabase-logs:
 	$(COMPOSE_METABASE) logs -f metabase
+
+metabase-connect-remote:
+	pnpm metabase-connect-remote
 
 demo-materialize-edge:
 	bash -lc 'set -a; [ -f .env ] && . ./.env; set +a; \

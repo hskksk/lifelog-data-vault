@@ -18,6 +18,7 @@ jobs:
           node-version: "22"
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      - run: pnpm test:bi-connection
       - run: pnpm --filter @lifelog/ingest-core build
       - run: pnpm --filter @lifelog/ingest-core typecheck
       - run: pnpm --filter @lifelog/ingest-core test

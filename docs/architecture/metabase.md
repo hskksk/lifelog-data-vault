@@ -73,14 +73,16 @@ Metabase は prepared statement を使う。入り口は **Session pooler のポ
 
 | | ローカル（コンテナから） | 本番 |
 |--|--------------------------|------|
-| Host | `host.docker.internal` | Dashboard の Session pooler ホスト |
+| Host | `host.docker.internal` | Session pooler ホスト（dbt と同じ解決） |
 | Port | `54422` | `5432` |
 | Database | `postgres` | `postgres` |
 | User | `bi_reader` | `bi_reader.<project-ref>` |
 | Password | `local-bi-reader` | Vault の値 |
 | SSL | オフ | require |
 | スキーマ | `mart` だけ同期 | 同じ |
-| 接続プール | 3 | 3（ロール上限は 10） |
+| 接続プール | 3 | 3（ロール上限は 10。Compose は `MB_JDBC_DATA_WAREHOUSE_MAX_CONNECTION_POOL_SIZE=3`） |
+
+手元の Metabase に本番を足すコマンドは `make metabase-connect-remote`。接続先は dbt と同じ Session pooler で、ユーザーは `bi_reader.<project-ref>`。コンテナから届けるホスト名も、その pooler の公開名。手順は [metabase-setup.md](../operations/metabase-setup.md) の本番節。
 
 表示タイムゾーンは Compose の `JAVA_TIMEZONE=Asia/Tokyo`。`tst` は `timestamptz` なので、ダッシュボード上の日付は日本時間になる。
 
@@ -107,4 +109,5 @@ SQL は [セットアップ手順](../operations/metabase-setup.md) に書く。
 | `packages/dbt/macros/grant_mart_to_bi_reader.sql` | mart モデルの `SELECT` |
 | `packages/dbt/dbt_project.yml` | marts の post-hook |
 | `deploy/docker/docker-compose.metabase.yml` | ローカル Metabase |
-| `Makefile` | `metabase-up` / `metabase-down` / `metabase-logs` |
+| `scripts/metabase-add-remote.ts` | 本番 `mart` を Metabase に登録 |
+| `Makefile` | `metabase-up` / `metabase-down` / `metabase-logs` / `metabase-connect-remote` |
