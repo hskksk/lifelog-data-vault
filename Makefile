@@ -3,7 +3,9 @@ SUPABASE ?= npx --yes supabase@2.122.0
 # Services not needed for Bronze ingest / Vault (also avoids Realtime DB_HOST nxdomain).
 SUPABASE_START_EXCLUDE ?= logflare,vector,realtime
 
-.PHONY: up down migrate ingest-core-build supabase-start supabase-stop supabase-reset supabase-functions-serve dbt-parse dbt-owntracks lint test demo-owntracks demo-owntracks-edge demo-materialize-edge
+COMPOSE_METABASE = docker compose -f deploy/docker/docker-compose.metabase.yml
+
+.PHONY: up down migrate ingest-core-build supabase-start supabase-stop supabase-reset supabase-functions-serve dbt-parse dbt-owntracks lint test demo-owntracks demo-owntracks-edge demo-materialize-edge metabase-up metabase-down metabase-logs
 
 up:
 	$(COMPOSE) up -d
@@ -56,6 +58,15 @@ demo-owntracks-edge:
 	    -H "Authorization: Bearer $${INGEST_BEARER_TOKEN:-change-me}" \
 	    -H "Content-Type: application/json" \
 	    -d "{\"_type\":\"location\",\"topic\":\"owntracks/me/iphone\",\"tid\":\"ip\",\"tst\":1700000000,\"lat\":35.6812,\"lon\":139.7671,\"t\":\"u\",\"acc\":10}"'
+
+metabase-up:
+	$(COMPOSE_METABASE) up -d
+
+metabase-down:
+	$(COMPOSE_METABASE) down
+
+metabase-logs:
+	$(COMPOSE_METABASE) logs -f metabase
 
 demo-materialize-edge:
 	bash -lc 'set -a; [ -f .env ] && . ./.env; set +a; \

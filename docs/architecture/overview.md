@@ -25,6 +25,7 @@ Ingest personal lifelog data (health, PC activity, manual metrics), store immuta
 Sources → Edge ingest → Storage Bronze + ops.ingest_batch
 Cron → Edge materialize → staging inbox
 GitHub Actions → dbt → raw_vault → business_vault → mart
+Metabase (bi_reader, session pooler) → mart
 GitHub → CI (ingest typecheck, dbt parse)
 ```
 
@@ -33,7 +34,7 @@ GitHub → CI (ingest typecheck, dbt parse)
 ```
 packages/ingest/         TypeScript ingest (Hono webhook, materialize → Bronze)
 packages/dbt/            dbt project lifelog_vault
-deploy/docker/           local Postgres
+deploy/docker/           local Postgres; Metabase compose (see metabase.md)
 deploy/sql/migrations/   Hub/Link/Sat DDL
 deploy/oci/systemd/      timers (future)
 .github/workflows/       CI
@@ -55,7 +56,7 @@ bronze/<record_source>/dt=YYYY-MM-DD/batch=<uuid>/
 | staging | dbt staging models |
 | raw_vault | hub_*, link_*, sat_* |
 | business_vault | bv_* |
-| mart | mart_* |
+| mart | mart_* (Metabase via `bi_reader`, [metabase.md](./metabase.md)) |
 | ops | ingest_batch, dbt_run_log |
 
 ## dbt naming
@@ -76,5 +77,5 @@ bronze/<record_source>/dt=YYYY-MM-DD/batch=<uuid>/
 | 0 | Skeleton, compose, migrations shell, dbt parse CI |
 | 1 | One source end-to-end to mart |
 | 2 | ops.ingest_batch, backfill runbook, second source |
-| 3 | Business Vault rules, Metabase, backup to R2 |
+| 3 | Business Vault rules, Metabase ([metabase.md](./metabase.md): `bi_reader` + local compose), backup to R2 |
 | 4 | Terraform OCI, PIT/Bridge |

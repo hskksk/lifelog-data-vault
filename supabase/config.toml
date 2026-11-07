@@ -12,6 +12,8 @@ enabled = true
 port = 54421
 # Schemas to expose in your API. Tables, views and stored procedures in this schema will get API
 # endpoints. `public` and `graphql_public` schemas are included by default.
+# staging / raw_vault / business_vault / mart / ops stay off this list.
+# BI reads mart as bi_reader over Postgres. See docs/architecture/metabase.md.
 schemas = ["public", "graphql_public"]
 # Extra schemas to add to the search_path of every request.
 extra_search_path = ["public", "extensions"]

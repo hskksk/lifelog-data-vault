@@ -12,6 +12,7 @@ Personal lifelog data platform using **Data Vault 2.0** patterns: Bronze object 
 | Transform | dbt Core (outside Supabase) |
 | Ingest (prod) | Supabase Edge Functions |
 | Ingest (local dev) | TypeScript `@lifelog/ingest` Hono server |
+| BI | Metabase, read-only `bi_reader` on schema `mart` |
 | CI | GitHub Actions |
 
 ## Quick start (local Supabase)
@@ -83,6 +84,18 @@ make supabase-start
 ```
 
 Realtime **`DB_HOST: nxdomain`** on older commits came from the Realtime container starting before Docker DNS was ready; excluding/disabling Realtime fixes that. Supabase recommends ~7GB RAM for the full stack; this project starts a smaller subset.
+
+### Metabase (local BI)
+
+Design: [docs/architecture/metabase.md](docs/architecture/metabase.md). Setup: [docs/operations/metabase-setup.md](docs/operations/metabase-setup.md).
+
+`make supabase-reset` creates `bi_reader` / `local-bi-reader` (SELECT on schema `mart` only). Then:
+
+```bash
+make metabase-up   # http://127.0.0.1:3000
+```
+
+In Metabase, connect to `host.docker.internal:54422`, database `postgres`, user `bi_reader`, schema `mart` only. Production uses the same role on the Supabase **session** pooler (port 5432). Password is Vault secret `bi_reader_password` (seed does not run on prod).
 
 ### Legacy Docker Postgres
 

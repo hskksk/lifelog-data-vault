@@ -27,6 +27,8 @@ jobs:
       SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
       SUPABASE_DB_PUSH_URL: ${{ secrets.SUPABASE_DB_PUSH_URL }}
       SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
+      # Optional. Empty skips the Vault upsert; sync still runs if the secret already exists.
+      BI_READER_PASSWORD: ${{ secrets.BI_READER_PASSWORD }}
 
     steps:
       - uses: actions/checkout@v4

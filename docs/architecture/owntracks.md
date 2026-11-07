@@ -124,7 +124,7 @@ sat_owntracks_location          属性 + hashdiff（insert-only）
 | オブジェクト | 内容 |
 |--------------|------|
 | `bv_location_fix` | owntracks の fix 時系列 |
-| `mart_location_trail` | BI: tst, lat, lon, h3, trigger |
+| `mart_location_trail` | BI: tst, lat, lon, h3, trigger。Metabase はこの view を `bi_reader` で読む（[metabase.md](./metabase.md)） |
 | `mart_location_daily` | 日 × device: fix 数、H3 セル集合、粗い移動距離 |
 
 ## 9. セキュリティ
