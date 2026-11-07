@@ -41,7 +41,7 @@ flowchart LR
 
 | 項目 | 内容 |
 |------|------|
-| 属性 | `LOGIN`、`NOSUPERUSER`、`NOBYPASSRLS`、`NOINHERIT`、`CONNECTION LIMIT 10` |
+| 属性 | `LOGIN`、`NOBYPASSRLS`、`NOINHERIT`、`CONNECTION LIMIT 10`。`NOSUPERUSER` は `CREATE ROLE` の既定（hosted の `postgres` は `NOSUPERUSER` を書けない） |
 | スキーマ | `mart` の `USAGE` のみ。`staging` / `raw_vault` / `business_vault` / `ops` は revoke |
 | テーブル / view | `mart` の `SELECT` のみ |
 | `search_path` | `mart` |
