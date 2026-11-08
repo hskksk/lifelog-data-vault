@@ -137,7 +137,7 @@ security add-generic-password -s lifelog-macos-ingest -a bearer -w "$MACOS_INGES
 pnpm --filter @lifelog/macos-collector exec tsx src/cli.ts run
 ```
 
-Hourly collection is an installed app, `~/Applications/Lifelog Collect.app`. The app is a single Go binary. It copies `knowledgeC.db` itself and posts power and Screen Time without node or this checkout, so editing the repo does not change the running job. Screen Time needs Full Disk Access on that app. `deploy/macos/collect.sh` remains a terminal helper for the TypeScript collector. Set the Edge secret `MACOS_INGEST_BEARER_TOKEN` before the collector can get a 202. dbt: Actions → **macos-dbt**, or the hourly owntracks-dbt workflow which also builds `tag:macos`.
+Hourly collection is an installed app, `~/Applications/Lifelog Collect.app`. The app is a single Go binary. It copies `knowledgeC.db` itself and posts power and Screen Time without node or this checkout, so editing the repo does not change the running job. Opening the app shows a settings page with the ingest URL, the keychain token, and a button that sends once and reports success or failure for power and Screen Time. The hourly LaunchAgent passes `run`, so it does not open that page. Screen Time needs Full Disk Access on that app. `deploy/macos/collect.sh` remains a terminal helper for the TypeScript collector. Set the Edge secret `MACOS_INGEST_BEARER_TOKEN` before the collector can get a 202. dbt: Actions → **macos-dbt**, or the hourly owntracks-dbt workflow which also builds `tag:macos`.
 
 Build the app, install it under `$HOME/Applications`, and write the LaunchAgent. Reinstalling changes the ad-hoc signature, so add the app to Full Disk Access again. `config.json` and the keychain entry stay where they are.
 

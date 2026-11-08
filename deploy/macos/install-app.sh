@@ -8,8 +8,9 @@ APP_NAME="Lifelog Collect.app"
 STAGE=$(mktemp -d)
 trap 'rm -rf "$STAGE"' EXIT
 
-mkdir -p "$STAGE/$APP_NAME/Contents/MacOS"
+mkdir -p "$STAGE/$APP_NAME/Contents/MacOS" "$STAGE/$APP_NAME/Contents/Resources"
 cp "$ROOT/deploy/macos/app/Info.plist" "$STAGE/$APP_NAME/Contents/Info.plist"
+cp "$ROOT/deploy/macos/app/AppIcon.icns" "$STAGE/$APP_NAME/Contents/Resources/AppIcon.icns"
 (
   cd "$ROOT/deploy/macos"
   go build -o "$STAGE/$APP_NAME/Contents/MacOS/lifelog-macos-collect" ./cmd/lifelog-macos-collect

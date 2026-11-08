@@ -437,6 +437,24 @@ func writeConfigTemplate(dir, ingestURL string) (string, bool, error) {
 	return path, true, nil
 }
 
+func saveIngestURL(dir, ingestURL string) error {
+	ingestURL = strings.TrimSpace(ingestURL)
+	if ingestURL == "" {
+		return fmt.Errorf("ingest_url is required")
+	}
+	if err := os.MkdirAll(dir, 0o700); err != nil {
+		return err
+	}
+	if err := os.Chmod(dir, 0o700); err != nil {
+		return err
+	}
+	body, err := marshalIndent(configFile{IngestURL: ingestURL})
+	if err != nil {
+		return err
+	}
+	return os.WriteFile(filepath.Join(dir, "config.json"), append(body, '\n'), 0o600)
+}
+
 func loadConfig() (url, token, dir string, err error) {
 	dir = stateDirFromEnv()
 	url = os.Getenv("MACOS_INGEST_URL")

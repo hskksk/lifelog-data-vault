@@ -97,7 +97,7 @@ sequenceDiagram
 
 ## 5. コレクタ
 
-実装時の開発用コレクタは `collectors/macos`（TypeScript）。インストールして launchd が起動するのは `~/Applications/Lifelog Collect.app` で、中身は `deploy/macos` の Go バイナリである。アプリはチェックアウトを読まない。純粋関数（ID、hashdiff、行→イベント）は `packages/ingest-core` に置き、Edge と開発用コレクタと CI で共有する。CI に Mac は不要。`pmset` やファイルコピーはコレクタ側の I/O に閉じる。
+実装時の開発用コレクタは `collectors/macos`（TypeScript）。インストールして launchd が起動するのは `~/Applications/Lifelog Collect.app` で、中身は `deploy/macos` の Go バイナリである。アプリを開くと設定画面が出て、送信先とトークンを保存し、その場で送信して成功と失敗を確認できる。1時間ごとの起動は引数 `run` で、設定画面は開かない。アプリはチェックアウトを読まない。純粋関数（ID、hashdiff、行→イベント）は `packages/ingest-core` に置き、Edge と開発用コレクタと CI で共有する。CI に Mac は不要。`pmset` やファイルコピーはコレクタ側の I/O に閉じる。
 
 ### 5.1 スケジュール
 
