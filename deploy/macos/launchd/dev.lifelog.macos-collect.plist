@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  Template. Replace the tsx binary and the cli path, then:
+    cp deploy/macos/launchd/dev.lifelog.macos-collect.plist ~/Library/LaunchAgents/
+    launchctl load ~/Library/LaunchAgents/dev.lifelog.macos-collect.plist
+
+  ingest_url lives in ~/Library/Application Support/lifelog/config.json.
+  The bearer token stays in the keychain (service lifelog-macos-ingest), not in this plist.
+  Grant Full Disk Access to the tsx/node binary before Screen Time collection can read knowledgeC.db.
+-->
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>dev.lifelog.macos-collect</string>
+  <key>WorkingDirectory</key>
+  <string>REPLACE_WITH_REPO</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>REPLACE_WITH_TSX</string>
+    <string>REPLACE_WITH_REPO/collectors/macos/src/cli.ts</string>
+    <string>run</string>
+  </array>
+  <key>RunAtLoad</key>
+  <true/>
+  <key>StartInterval</key>
+  <integer>3600</integer>
+  <key>StandardOutPath</key>
+  <string>REPLACE_WITH_HOME/Library/Logs/lifelog-macos-collect.log</string>
+  <key>StandardErrorPath</key>
+  <string>REPLACE_WITH_HOME/Library/Logs/lifelog-macos-collect.err.log</string>
+</dict>
+</plist>

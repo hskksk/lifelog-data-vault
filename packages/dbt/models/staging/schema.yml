@@ -9,3 +9,25 @@ models:
       - name: batch_id
         tests:
           - not_null
+  - name: stg_macos_power__event
+    columns:
+      - name: power_event_id
+        tests:
+          - not_null
+      - name: machine_bk
+        tests:
+          - not_null
+      - name: batch_id
+        tests:
+          - not_null
+  - name: stg_macos_screentime__interval
+    columns:
+      - name: usage_interval_id
+        tests:
+          - not_null
+      - name: os_account_bk
+        tests:
+          - not_null
+      - name: batch_id
+        tests:
+          - not_null

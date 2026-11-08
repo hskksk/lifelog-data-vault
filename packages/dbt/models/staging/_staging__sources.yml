@@ -6,3 +6,7 @@ sources:
     tables:
       - name: owntracks_location_inbox
         description: Materialized OwnTracks location rows from Bronze
+      - name: macos_power_event_inbox
+        description: Materialized Mac power events from Bronze
+      - name: macos_screentime_interval_inbox
+        description: Materialized Mac Screen Time intervals from Bronze

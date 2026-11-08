@@ -147,6 +147,8 @@ async function main() {
     "deploy",
     "owntracks-ingest",
     "owntracks-materialize",
+    "macos-ingest",
+    "macos-materialize",
     "--no-verify-jwt",
     "--yes",
   ]);
@@ -155,6 +157,8 @@ async function main() {
   console.log("\nDeploy complete.");
   console.log(`Ingest URL:      ${functionsBase}/owntracks-ingest`);
   console.log(`Materialize URL: ${functionsBase}/owntracks-materialize (Cron uses Vault + apikey)`);
+  console.log(`Mac ingest URL:  ${functionsBase}/macos-ingest`);
+  console.log(`Mac materialize: ${functionsBase}/macos-materialize (Cron uses Vault + apikey)`);
 }
 
 main().catch((err) => {

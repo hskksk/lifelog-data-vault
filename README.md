@@ -125,7 +125,18 @@ Cron / dbt / `dbt_runner` password remain one-time Dashboard or SQL setup (not i
 
 ### Mac power, Screen Time, Health
 
-Design only (not implemented): [docs/architecture/macos-local-ingest.md](docs/architecture/macos-local-ingest.md). A launchd agent on the Mac pushes normalized JSON to Edge. Health `export.zip` stays on the Mac; the agent posts record chunks. Toggles in `config/sources.yml` (`macos_power`, `macos_screentime`, `apple_health`) stay disabled until that pipeline exists.
+Design: [docs/architecture/macos-local-ingest.md](docs/architecture/macos-local-ingest.md). Power and Screen Time are implemented. Health export is still design only.
+
+The Mac collector posts normalized JSON to `macos-ingest`. `hub_device` stays the OwnTracks topic. Power events hang off `hub_machine` (hardware UUID). Screen Time hangs off `hub_os_account`. The computer name is `sat_machine_details`, not a hub key.
+
+```bash
+# ~/Library/Application Support/lifelog/config.json
+# { "ingest_url": "https://<project-ref>.supabase.co/functions/v1/macos-ingest" }
+security add-generic-password -s lifelog-macos-ingest -a bearer -w "$MACOS_INGEST_BEARER_TOKEN"
+pnpm --filter @lifelog/macos-collector exec tsx src/cli.ts run
+```
+
+`config/sources.yml` leaves `macos_power` and `macos_screentime` disabled until you install the launchd template in `deploy/macos/launchd/`. Screen Time needs Full Disk Access on the `tsx` binary. Set the Edge secret `MACOS_INGEST_BEARER_TOKEN` before the collector can get a 202. dbt: Actions → **macos-dbt**, or the hourly owntracks-dbt workflow which also builds `tag:macos`.
 
 ### OwnTracks (location)
 

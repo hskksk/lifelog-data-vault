@@ -5,7 +5,7 @@
 
 Mac 上のデータを、OwnTracks と同じく **Supabase Edge → Storage Bronze → staging inbox → dbt** に載せる。クラウドから Mac を引きに行かない。抽出は Mac の launchd エージェントが行い、正規化済み JSON を push する。
 
-この文書は設計だけを決める。コレクタ、Edge、マイグレーション、dbt モデルは後続の実装ステップである。
+電源とスクリーンタイムの実装は `collectors/macos`、`supabase/functions/macos-ingest`、`supabase/functions/macos-materialize`、`packages/dbt` の `tag:macos` にある。ヘルスケアは未実装。
 
 ## 1. スコープ
 

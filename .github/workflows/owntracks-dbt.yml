@@ -57,4 +57,5 @@ jobs:
 
       - name: dbt build tag:owntracks
         working-directory: packages/dbt
-        run: dbt build --select tag:owntracks --profiles-dir . --target ci
+        # '+' pulls staging views that hub_person now shares with the Mac sources.
+        run: dbt build --select +tag:owntracks +tag:macos --profiles-dir . --target ci

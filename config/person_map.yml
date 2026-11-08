@@ -3,9 +3,10 @@
 default_person_id: me
 
 # Optional: map the second segment of owntracks/<user>/<device> to person_id.
-# users:
-#   me: me
-#   partner: spouse
+users:
+  # me: me
+  # partner: spouse
+  hskksk: hskksk
 
 # Optional association from a machine or OS account to person_id.
 # These are not hub_device keys. Unlisted ids use default_person_id.
