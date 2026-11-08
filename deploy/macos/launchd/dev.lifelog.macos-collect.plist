@@ -1,9 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <!--
-  Replace REPLACE_WITH_REPO and REPLACE_WITH_HOME, then:
-    cp deploy/macos/launchd/dev.lifelog.macos-collect.plist ~/Library/LaunchAgents/
-    launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/dev.lifelog.macos-collect.plist
+  Registration commands are in the README (Mac power, Screen Time, Health).
+  The installed plist must not still contain REPLACE_WITH_REPO or REPLACE_WITH_HOME.
 
   The agent runs deploy/macos/collect.sh. ingest_url stays in
   ~/Library/Application Support/lifelog/config.json.

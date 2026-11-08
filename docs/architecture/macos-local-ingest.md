@@ -496,7 +496,8 @@ supabase/functions/macos-materialize/
 config/apple_health_types.yml
 config/sources.yml                        # 既定値。enabled は false のまま始める
 config/person_map.yml                     # 任意の machines: / os_accounts:
-deploy/macos/launchd/
+deploy/macos/collect.sh                   # launchd が実行するスクリプト
+deploy/macos/launchd/                     # plist 雛形。登録手順は README
 packages/dbt/models/...                   # tag:macos
 ```
 

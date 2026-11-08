@@ -137,7 +137,24 @@ security add-generic-password -s lifelog-macos-ingest -a bearer -w "$MACOS_INGES
 pnpm --filter @lifelog/macos-collector exec tsx src/cli.ts run
 ```
 
-Hourly collection is `deploy/macos/collect.sh`, started by the LaunchAgent template `deploy/macos/launchd/dev.lifelog.macos-collect.plist`. Replace `REPLACE_WITH_REPO` and `REPLACE_WITH_HOME` in the copy under `~/Library/LaunchAgents/`. Screen Time needs Full Disk Access on the `node` binary that script runs. Set the Edge secret `MACOS_INGEST_BEARER_TOKEN` before the collector can get a 202. dbt: Actions → **macos-dbt**, or the hourly owntracks-dbt workflow which also builds `tag:macos`.
+Hourly collection is `deploy/macos/collect.sh`, started by the LaunchAgent template. Screen Time needs Full Disk Access on the `node` binary that script runs. Set the Edge secret `MACOS_INGEST_BEARER_TOKEN` before the collector can get a 202. dbt: Actions → **macos-dbt**, or the hourly owntracks-dbt workflow which also builds `tag:macos`.
+
+Register the agent. `REPLACE_WITH_REPO` is the checkout path. `$HOME` is the macOS home directory. Re-running replaces the installed plist.
+
+```bash
+REPO=REPLACE_WITH_REPO
+mkdir -p "$HOME/Library/LaunchAgents" "$HOME/Library/Logs"
+sed \
+  -e "s|REPLACE_WITH_REPO|$REPO|g" \
+  -e "s|REPLACE_WITH_HOME|$HOME|g" \
+  "$REPO/deploy/macos/launchd/dev.lifelog.macos-collect.plist" \
+  > "$HOME/Library/LaunchAgents/dev.lifelog.macos-collect.plist"
+launchctl bootout "gui/$(id -u)/dev.lifelog.macos-collect" 2>/dev/null || true
+launchctl bootstrap "gui/$(id -u)" "$HOME/Library/LaunchAgents/dev.lifelog.macos-collect.plist"
+launchctl kickstart -k "gui/$(id -u)/dev.lifelog.macos-collect"
+```
+
+Logs: `$HOME/Library/Logs/lifelog-macos-collect.log` and `lifelog-macos-collect.err.log`.
 
 ### OwnTracks (location)
 
