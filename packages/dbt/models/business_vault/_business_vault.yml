@@ -1,0 +1,65 @@
+version: 2
+
+models:
+  - name: bv_location_fix
+    description: One adopted OwnTracks fix per person, device, and timestamp.
+    columns:
+      - name: location_event_hk
+        tests: [not_null]
+      - name: person_id
+        tests: [not_null]
+      - name: device_bk
+        tests: [not_null]
+      - name: tst
+        tests: [not_null]
+  - name: bv_location_segment
+    description: One row per consecutive fix pair. position_model is significant_change_v1.
+    columns:
+      - name: position_model
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ["linear", "hold_start", "unknown"]
+      - name: duration_seconds
+        tests: [not_null]
+      - name: start_tst
+        tests: [not_null]
+      - name: end_tst
+        tests: [not_null]
+  - name: bv_power_interval
+    description: Machine power state from one pmset event until the next.
+    columns:
+      - name: power_state
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ["on", "asleep", "dark_wake", "off"]
+      - name: power_confidence
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ["high", "low"]
+      - name: machine_bk
+        tests: [not_null]
+      - name: started_at
+        tests: [not_null]
+  - name: bv_app_usage_interval
+    description: Current Screen Time interval, one row per usage_interval_hk.
+    columns:
+      - name: usage_interval_hk
+        tests: [not_null, unique]
+      - name: bundle_id
+        tests: [not_null]
+      - name: started_at
+        tests: [not_null]
+      - name: ended_at
+        tests: [not_null]
+      - name: usage_device_scope
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ["this_mac", "other_or_unknown"]

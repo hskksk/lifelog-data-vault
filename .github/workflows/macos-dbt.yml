@@ -49,4 +49,4 @@ jobs:
 
       - name: dbt build tag:macos
         working-directory: packages/dbt
-        run: dbt build --select +tag:macos --profiles-dir . --target ci
+        run: dbt build --select +tag:macos +tag:person_activity --profiles-dir . --target ci

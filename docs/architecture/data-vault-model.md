@@ -26,12 +26,17 @@
 
 ## Business vault
 
-- `bv_observation_daily`
-- `bv_sleep_session`
+ある時刻の場所と行動（位置の補間、電源区間、アプリ区間）の定義は、[person-activity.md](./person-activity.md) にある。
+
+- `bv_location_fix`, `bv_location_segment` — 実測点と、隣り合う二点の組（位置区間）。`position_model = linear` になるのは、線形補間してよい位置区間だけ
+- `bv_power_interval` — Sleep / Wake などのイベントから、マシンの状態区間を作る
+- `bv_app_usage_interval` — スクリーンタイム区間。終了時刻が伸びた更新を反映した、最新の行だけを持つ
+- `bv_observation_daily`, `bv_sleep_session` — ヘルスケアを取り込むときに作る
 
 ## Marts
 
-- `mart_health_daily`
-- `mart_pc_activity_daily`
+- `mart_location_trail` — 実測の fix だけ。補間点は入れない
+- `mart_person_activity_minute` — person × 分。推定位置、電源、アプリ。定義は [person-activity.md](./person-activity.md)
+- `mart_health_daily`, `mart_pc_activity_daily` — 日次。分マートの再集計では作らない
 
 Required metadata on satellites: `load_dts`, `record_source`, `batch_id`, hash keys via dbt macros.

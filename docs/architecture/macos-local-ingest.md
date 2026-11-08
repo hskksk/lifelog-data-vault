@@ -440,7 +440,7 @@ link_os_account_usage_interval
 link_usage_interval_application
 
 sat_macos_power_event            kind, message, raw_line, occurred_at
-sat_macos_screentime_interval    ended_at, duration, source_device_ref を hashdiff に含める
+sat_macos_screentime_interval    started_at, stream（区間 ID の材料。hashdiff に入れない）。ended_at, duration, source_device_ref は hashdiff に含める
 sat_machine_details              computer_name, model, os_version。hashdiff が変わったときだけ新行
 ```
 
@@ -452,14 +452,21 @@ sat は insert-only。同一 BK で hashdiff が同じ行は足さない。必�
 
 ## 11. Business Vault / Mart（Phase 4）
 
+電源区間、アプリ区間、person × 分のマートの定義は、[person-activity.md](./person-activity.md) にある。この文書に関わる決めは次の二つである。
+
+- `DarkWake` は `on` ではなく `dark_wake` にする。
+- スクリーンタイムの `started_at` と `stream` は、sat の列にする。hashdiff には入れない。
+
 | オブジェクト | 内容 |
 |--------------|------|
-| `bv_power_interval` | Sleep または Shutdown と、次の Wake または Start の組。理由の解釈はここに書く |
-| `bv_screentime_daily` | 日 × device × bundle の秒数 |
+| `bv_power_interval` | マシンごとの電源状態区間。開いたイベントの `kind` が状態になる |
+| `bv_app_usage_interval` | 終了時刻が伸びたあとの `/app/usage` 区間 |
+| `bv_screentime_daily` | 日 × device × bundle の秒数。分マートから再集計しない |
 | `bv_observation_daily` | 歩数・心拍・体重の日次 |
 | `bv_sleep_session` | 連続する睡眠カテゴリの結合 |
 | `mart_machine_power_daily` | マシンごとのスリープ回数、起動回数 |
 | `mart_pc_activity_daily` | スクリーンタイム日次。ActivityWatch を足すときもこの mart |
+| `mart_person_activity_minute` | ある分の電源とアプリ。位置と並べる |
 | `mart_health_daily` | マップ済み observation の日次 |
 
 Phase 1〜3 は inbox と sat までで止めてよい。mart の器は [data-vault-model.md](./data-vault-model.md) に既にある。
