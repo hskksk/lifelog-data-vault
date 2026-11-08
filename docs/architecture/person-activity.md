@@ -232,7 +232,7 @@ A minute that exists because of Mac activity still receives a location when the 
 | `motion_label`, `motion_at_start`, `motion_at_end` | [§4](#4-移動状態)。device が一つのときだけ埋める |
 | `power_state` | マシンが一つのときの状態。複数なら null |
 | `power_confidence`, `power_open` | マシンが一つのときだけ入れる |
-| `machines` | マシンごとの `machine_bk`, 最新の `computer_name`, `power_state`, `power_confidence`, `power_open` |
+| `machines` | マシンごとの `machine_bk`, 最新の `computer_name`, `power_state`, `power_confidence`, `power_open`, 区間の `started_at` |
 | `app_bundle_ids` | その分と重なる `this_mac` の bundle。重複を除いて並べ替える |
 | `app_count` | `app_bundle_ids` の長さ |
 
