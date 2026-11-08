@@ -1,6 +1,7 @@
 #!/bin/sh
-# Terminal helper. Launchd runs deploy/macos/lifelog-macos-collect instead:
-# a shell script's shebang is /bin/sh, so Full Disk Access would cover the shell.
+# Terminal helper for the TypeScript collector in this checkout.
+# The installed LaunchAgent runs ~/Applications/Lifelog Collect.app instead,
+# so a change in this directory does not affect the hourly job.
 # tsx only applies collectors/macos/tsconfig.json when that directory is the cwd.
 set -eu
 

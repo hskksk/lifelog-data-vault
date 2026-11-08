@@ -97,13 +97,13 @@ sequenceDiagram
 
 ## 5. コレクタ
 
-実装時の置き場は `collectors/macos`（TypeScript）。純粋関数（ID、hashdiff、行→イベント）は `packages/ingest-core` に置き、Edge とコレクタと CI で共有する。CI に Mac は不要。`pmset` やファイルコピーはコレクタ側の I/O に閉じる。
+実装時の開発用コレクタは `collectors/macos`（TypeScript）。インストールして launchd が起動するのは `~/Applications/Lifelog Collect.app` で、中身は `deploy/macos` の Go バイナリである。アプリはチェックアウトを読まない。純粋関数（ID、hashdiff、行→イベント）は `packages/ingest-core` に置き、Edge と開発用コレクタと CI で共有する。CI に Mac は不要。`pmset` やファイルコピーはコレクタ側の I/O に閉じる。
 
 ### 5.1 スケジュール
 
 | 項目 | 値 |
 |------|-----|
-| plist | `deploy/macos/launchd/dev.lifelog.macos-collect.plist` |
+| plist | `deploy/macos/launchd/dev.lifelog.macos-collect.plist`。実体は `~/Applications/Lifelog Collect.app` |
 | 間隔 | 3600 秒、`RunAtLoad` |
 | ヘルスケア | ドロップフォルダの `WatchPaths` でも起動 |
 | 排他 | ローカル flock。重なっても ID で無害だが、二重 POST は避ける |
@@ -127,12 +127,12 @@ Bearer はキーチェーン（service `lifelog-macos-ingest`）。URL だけ `c
 | ソース | 必要なもの |
 |--------|------------|
 | 電源 | なし（`pmset`） |
-| スクリーンタイム | `deploy/macos/lifelog-macos-collect` へのフルディスクアクセス。この Go バイナリだけが DB・WAL・SHM を一時ディレクトリへコピーし、その後 node がコピーを `sqlite3` で読む。`/bin/sh` と `node` には付けない |
+| スクリーンタイム | `~/Applications/Lifelog Collect.app` へのフルディスクアクセス。このアプリだけが DB・WAL・SHM を一時ディレクトリへコピーし、`sqlite3` で読む。`/bin/sh` と `node` には付けない |
 | ヘルスケア | ドロップフォルダの読み書きだけ。書き出し操作自体はユーザーがヘルスケア.app で行う |
 
-スクリプトに実行権限を付けて plist から `/bin/sh` を外しても、shebang の実体はシェルなので許可範囲は狭まらない。launchd が起動するのは Go の単体バイナリで、知識 DB を開くのはそのプロセスだけである。
+スクリプトに実行権限を付けても、shebang の実体はシェルなので許可範囲は狭まらない。launchd が起動するのはインストール済みのアプリで、知識 DB を開くのはそのプロセスだけである。チェックアウトのパスは plist に入らない。
 
-コピーが `EPERM` のときはスクリーンタイムをスキップし、理由をローカルログに残す。権限回復のあと、`covered_until` を戻さなくても重なり窓の外は既に DB から消えていることがある。初回導入時にフルディスクアクセスを先に付ける。再ビルドすると署名が変わるので、そのバイナリを付け直す。
+コピーが `EPERM` のときはスクリーンタイムをスキップし、理由をローカルログに残す。権限回復のあと、`covered_until` を戻さなくても重なり窓の外は既に DB から消えていることがある。初回導入時にフルディスクアクセスを先に付ける。再インストールすると署名が変わるので、アプリを付け直す。
 
 ### 5.3 窓
 
@@ -498,8 +498,10 @@ supabase/functions/macos-materialize/
 config/apple_health_types.yml
 config/sources.yml                        # 既定値。enabled は false のまま始める
 config/person_map.yml                     # 任意の machines: / os_accounts:
-deploy/macos/cmd/lifelog-macos-collect/  # launchd が起動する Go バイナリ。FDA の対象
-deploy/macos/collect.sh                   # 端末から同じコレクタを起動する
+deploy/macos/app/Info.plist               # Lifelog Collect.app の情報
+deploy/macos/install-app.sh               # ~/Applications へインストールする
+deploy/macos/cmd/lifelog-macos-collect/   # アプリの実行ファイル。FDA の対象
+deploy/macos/collect.sh                   # チェックアウト内の TypeScript コレクタを端末から起動する
 deploy/macos/launchd/                     # plist 雛形。登録手順は README
 packages/dbt/models/...                   # tag:macos
 ```

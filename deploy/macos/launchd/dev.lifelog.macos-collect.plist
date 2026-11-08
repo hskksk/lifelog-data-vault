@@ -2,11 +2,10 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <!--
   Registration commands are in the README (Mac power, Screen Time, Health).
-  The installed plist must not still contain REPLACE_WITH_REPO or REPLACE_WITH_HOME.
+  install-app.sh substitutes REPLACE_WITH_HOME.
 
-  Build deploy/macos/lifelog-macos-collect with go, then point this agent at it.
-  A shell script cannot hold its own Full Disk Access grant: the shebang still
-  runs /bin/sh. Grant Full Disk Access to lifelog-macos-collect only.
+  The agent runs ~/Applications/Lifelog Collect.app. It does not read the
+  checkout. Grant Full Disk Access to that app, not to /bin/sh or node.
 
   ingest_url stays in ~/Library/Application Support/lifelog/config.json.
   The bearer token stays in the keychain (service lifelog-macos-ingest).
@@ -17,7 +16,7 @@
   <string>dev.lifelog.macos-collect</string>
   <key>ProgramArguments</key>
   <array>
-    <string>REPLACE_WITH_REPO/deploy/macos/lifelog-macos-collect</string>
+    <string>REPLACE_WITH_HOME/Applications/Lifelog Collect.app/Contents/MacOS/lifelog-macos-collect</string>
   </array>
   <key>RunAtLoad</key>
   <true/>

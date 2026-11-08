@@ -1,4 +1,4 @@
-package main
+package knowledge
 
 import (
 	"os"
@@ -20,7 +20,7 @@ func TestCopyKnowledgeDBCopiesRegularFilesOnly(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	snapshot, dir, status, detail := copyKnowledgeDB(home, t.TempDir())
+	snapshot, dir, status, detail := CopyKnowledgeDB(home, t.TempDir())
 	if status != "" || detail != "" {
 		t.Fatalf("status=%q detail=%q", status, detail)
 	}
@@ -61,7 +61,7 @@ func TestCopyKnowledgeDBRejectsSymlink(t *testing.T) {
 		t.Fatal(err)
 	}
 	tmp := t.TempDir()
-	snapshot, _, status, _ := copyKnowledgeDB(home, tmp)
+	snapshot, _, status, _ := CopyKnowledgeDB(home, tmp)
 	if snapshot != "" {
 		t.Fatalf("copied symlink to %s", snapshot)
 	}
@@ -78,13 +78,13 @@ func TestCopyKnowledgeDBRejectsSymlink(t *testing.T) {
 }
 
 func TestCopyKnowledgeDBMissingAndUnreadable(t *testing.T) {
-	_, _, status, detail := copyKnowledgeDB("", t.TempDir())
+	_, _, status, detail := CopyKnowledgeDB("", t.TempDir())
 	if status != "sqlite" || detail != "HOME is unset" {
 		t.Fatalf("empty home: %s %s", status, detail)
 	}
 
 	home := t.TempDir()
-	_, _, status, detail = copyKnowledgeDB(home, t.TempDir())
+	_, _, status, detail = CopyKnowledgeDB(home, t.TempDir())
 	if status != "sqlite" || detail != "knowledgeC.db is missing" {
 		t.Fatalf("missing: %s %s", status, detail)
 	}
@@ -102,7 +102,7 @@ func TestCopyKnowledgeDBMissingAndUnreadable(t *testing.T) {
 	}
 	t.Cleanup(func() { os.Chmod(dbDir, 0o755) })
 	tmp := t.TempDir()
-	_, _, status, detail = copyKnowledgeDB(blocked, tmp)
+	_, _, status, detail = CopyKnowledgeDB(blocked, tmp)
 	if status != "full_disk_access" || detail != "knowledgeC.db is not readable" {
 		t.Fatalf("unreadable: %s %s", status, detail)
 	}
@@ -112,35 +112,5 @@ func TestCopyKnowledgeDBMissingAndUnreadable(t *testing.T) {
 	}
 	if len(entries) != 0 {
 		t.Fatalf("left temp entries: %v", entries)
-	}
-}
-
-func TestCommandNeedsScreenTime(t *testing.T) {
-	if !commandNeedsScreenTime(nil) || !commandNeedsScreenTime([]string{"run"}) || !commandNeedsScreenTime([]string{"screentime"}) {
-		t.Fatal("run and screentime copy the database")
-	}
-	if commandNeedsScreenTime([]string{"power"}) || commandNeedsScreenTime([]string{"init-config", "https://example.test"}) {
-		t.Fatal("power and init-config do not copy the database")
-	}
-}
-
-func TestFindRepoRoot(t *testing.T) {
-	root := t.TempDir()
-	if err := os.MkdirAll(filepath.Join(root, "collectors", "macos", "src"), 0o755); err != nil {
-		t.Fatal(err)
-	}
-	if err := os.WriteFile(filepath.Join(root, "collectors", "macos", "src", "cli.ts"), []byte("export {}\n"), 0o644); err != nil {
-		t.Fatal(err)
-	}
-	if err := os.WriteFile(filepath.Join(root, "pnpm-workspace.yaml"), []byte("packages:\n"), 0o644); err != nil {
-		t.Fatal(err)
-	}
-	exe := filepath.Join(root, "deploy", "macos", "lifelog-macos-collect")
-	got, err := findRepoRoot(exe)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if got != root {
-		t.Fatalf("root = %s, want %s", got, root)
 	}
 }

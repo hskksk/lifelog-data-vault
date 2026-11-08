@@ -1,4 +1,4 @@
-package main
+package knowledge
 
 import (
 	"errors"
@@ -9,19 +9,15 @@ import (
 	"syscall"
 )
 
-func commandNeedsScreenTime(args []string) bool {
-	cmd := "run"
-	if len(args) > 0 && args[0] != "" {
-		cmd = args[0]
-	}
-	return cmd == "run" || cmd == "screentime"
-}
-
-func copyKnowledgeDB(home, tmpRoot string) (snapshot, snapshotDir, status, detail string) {
+func CopyKnowledgeDB(home, tmpRoot string) (snapshot, snapshotDir, status, detail string) {
 	if home == "" {
 		return "", "", "sqlite", "HOME is unset"
 	}
 	src := filepath.Join(home, "Library", "Application Support", "Knowledge", "knowledgeC.db")
+	return CopyDatabase(src, tmpRoot)
+}
+
+func CopyDatabase(src, tmpRoot string) (snapshot, snapshotDir, status, detail string) {
 	dir, err := os.MkdirTemp(tmpRoot, "lifelog-knowledge-")
 	if err != nil {
 		return "", "", "sqlite", "could not create a temp directory"
@@ -79,18 +75,4 @@ func copyFileNoFollow(src, dst string) error {
 		return copyErr
 	}
 	return closeErr
-}
-
-func applyCopyEnv(snapshot, snapshotDir, status, detail string) {
-	if status != "" {
-		os.Setenv("LIFELOG_KNOWLEDGE_COPY_STATUS", status)
-		os.Setenv("LIFELOG_KNOWLEDGE_COPY_DETAIL", detail)
-		os.Unsetenv("LIFELOG_KNOWLEDGE_SNAPSHOT")
-		os.Unsetenv("LIFELOG_KNOWLEDGE_SNAPSHOT_DIR")
-		return
-	}
-	os.Unsetenv("LIFELOG_KNOWLEDGE_COPY_STATUS")
-	os.Unsetenv("LIFELOG_KNOWLEDGE_COPY_DETAIL")
-	os.Setenv("LIFELOG_KNOWLEDGE_SNAPSHOT", snapshot)
-	os.Setenv("LIFELOG_KNOWLEDGE_SNAPSHOT_DIR", snapshotDir)
 }
