@@ -452,14 +452,18 @@ sat は insert-only。同一 BK で hashdiff が同じ行は足さない。必�
 
 ## 11. Business Vault / Mart（Phase 4）
 
+電源区間とアプリ区間の定義、および person × 分のマートは [person-activity.md](./person-activity.md)。`DarkWake` は `on` にしない。スクリーンタイムの `started_at` は sat に無いので、business vault の前に sat へ足す。
+
 | オブジェクト | 内容 |
 |--------------|------|
-| `bv_power_interval` | Sleep または Shutdown と、次の Wake または Start の組。理由の解釈はここに書く |
-| `bv_screentime_daily` | 日 × device × bundle の秒数 |
+| `bv_power_interval` | マシンごとの電源状態区間。開いたイベントの `kind` が状態になる |
+| `bv_app_usage_interval` | 終了時刻が伸びたあとの `/app/usage` 区間 |
+| `bv_screentime_daily` | 日 × device × bundle の秒数。分マートから再集計しない |
 | `bv_observation_daily` | 歩数・心拍・体重の日次 |
 | `bv_sleep_session` | 連続する睡眠カテゴリの結合 |
 | `mart_machine_power_daily` | マシンごとのスリープ回数、起動回数 |
 | `mart_pc_activity_daily` | スクリーンタイム日次。ActivityWatch を足すときもこの mart |
+| `mart_person_activity_minute` | ある分の電源とアプリ。位置と並べる |
 | `mart_health_daily` | マップ済み observation の日次 |
 
 Phase 1〜3 は inbox と sat までで止めてよい。mart の器は [data-vault-model.md](./data-vault-model.md) に既にある。
