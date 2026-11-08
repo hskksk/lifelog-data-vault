@@ -209,7 +209,8 @@ power_at_minute as (
         machine_name.computer_name,
         power.power_state,
         power.power_confidence,
-        power.power_open
+        power.power_open,
+        power.started_at
     from spine
     inner join {{ ref('bv_power_interval') }} as power
         on power.person_hk = spine.person_hk
@@ -236,7 +237,8 @@ power_agg as (
                 'computer_name', computer_name,
                 'power_state', power_state,
                 'power_confidence', power_confidence,
-                'power_open', power_open
+                'power_open', power_open,
+                'started_at', started_at
             )
             order by machine_bk
         ) as machines

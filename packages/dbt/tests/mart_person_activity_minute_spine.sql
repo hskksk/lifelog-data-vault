@@ -24,15 +24,11 @@ only_off as (
 ),
 
 open_power_past_cap as (
-    select minute.person_id, minute.minute_at, power.machine_bk
+    select minute.person_id, minute.minute_at
     from {{ ref('mart_person_activity_minute') }} as minute
-    inner join {{ ref('bv_power_interval') }} as power
-        on power.person_id = minute.person_id
-        and power.power_open
-        and minute.minute_at >= power.started_at + interval '36 hours'
     inner join lateral jsonb_array_elements(minute.machines) as machine on true
-    where machine ->> 'machine_bk' = power.machine_bk
-        and machine ->> 'power_state' = power.power_state
+    where machine ->> 'power_open' = 'true'
+        and minute.minute_at >= (machine ->> 'started_at')::timestamptz + interval '36 hours'
 ),
 
 duplicate_minutes as (
