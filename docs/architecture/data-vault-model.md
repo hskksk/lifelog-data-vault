@@ -26,12 +26,12 @@
 
 ## Business vault
 
-ある時刻の場所と行動（位置の補間、電源区間、アプリ区間）は [person-activity.md](./person-activity.md)。
+ある時刻の場所と行動（位置の補間、電源区間、アプリ区間）の定義は、[person-activity.md](./person-activity.md) にある。
 
-- `bv_location_fix`, `bv_location_segment` — 実測点と、隣り合う二点。線形補間してよい区間だけ `position_model = linear`
-- `bv_power_interval` — Sleep / Wake などをマシンの状態区間にする
-- `bv_app_usage_interval` — 終了時刻が伸びたあとのスクリーンタイム区間
-- `bv_observation_daily`, `bv_sleep_session` — ヘルスケアを入れるとき
+- `bv_location_fix`, `bv_location_segment` — 実測点と、隣り合う二点の組（位置区間）。`position_model = linear` になるのは、線形補間してよい位置区間だけ
+- `bv_power_interval` — Sleep / Wake などのイベントから、マシンの状態区間を作る
+- `bv_app_usage_interval` — スクリーンタイム区間。終了時刻が伸びた更新を反映した、最新の行だけを持つ
+- `bv_observation_daily`, `bv_sleep_session` — ヘルスケアを取り込むときに作る
 
 ## Marts
 
