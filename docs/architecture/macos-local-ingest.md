@@ -26,7 +26,7 @@ Mac 上のデータを、OwnTracks と同じく **Supabase Edge → Storage Bron
 | Bronze | 既存規約 `bronze/<record_source>/dt=YYYY-MM-DD/batch=<uuid>/`。中身は正規化 JSON |
 | パースの分担 | **正規化は Mac**。materialize は検証・ID 再計算・inbox 投入だけ |
 | 関数の数 | ingest 1 + materialize 1。`record_source` と `entity` で振り分ける。ソースごとに関数を複製しない |
-| 識別子 | **`hub_device` は OwnTracks の topic 専用のまま**。電源は `hub_machine`（hardware UUID）。スクリーンタイムは `hub_os_account`（そのマシン上の uid）。種類が違うので接頭辞を付けて一つの hub に混ぜない |
+| 識別子 | **`hub_device` は OwnTracks の topic 専用のまま**。電源は `hub_machine`（hardware UUID）。スクリーンタイムは `hub_os_account`（そのマシン上の uid）。コンピュータ名は `sat_machine_details` の属性で、hub のキーにしない |
 | 人物キー | `hub_person` は人そのものなのでソースをまたいで共有する。`default_person_id`。任意で `machines:` / `os_accounts:` |
 | ハッシュ | 既存の `hash_key` / `hash_diff` と同じ **md5**。改ざん検知には使わない |
 | ヘルスケア原本 | ZIP / XML は Edge に送らない。Mac の archive に残す。Bronze に載るのはレコード JSON |
@@ -171,7 +171,7 @@ seen-set と `covered_until` は **202 を受け取ったあと**に進める。
   "collector": {
     "hardware_uuid": "IOPlatformUUID",
     "os_user_id": 501,
-    "hostname": "display only",
+    "computer_name": "Hiroshi's MacBook Pro",
     "model": "Mac14,6",
     "os_version": "15.1",
     "timezone": "Asia/Tokyo"
@@ -185,6 +185,8 @@ seen-set と `covered_until` は **202 を受け取ったあと**に進める。
   "events": []
 }
 ```
+
+`hardware_uuid` と `computer_name` は必須。`computer_name` は `scutil --get ComputerName`（システム設定のコンピュータ名）。Unix の HostName や Bonjour の LocalHostName は別名なので、この列には入れない。
 
 `record_source` と `entity` の組は次だけを受理する。
 
@@ -248,6 +250,7 @@ ID と hashdiff は materialize が再計算する。コレクタの seen-set �
 | `batch_id` | FK `ops.ingest_batch` |
 | `power_event_id` | 上記 |
 | `machine_bk` | hardware UUID そのもの。接頭辞は付けない |
+| `computer_name`, `model`, `os_version` | そのバッチを送った時点のマシン属性。`sat_machine_details` の入力 |
 | `person_id` | person_map の `machines:` または `default_person_id` |
 | `occurred_at`, `kind`, `message`, `raw_line` | イベント |
 | `payload` | jsonb。エンベロープの collector と当該イベント |
@@ -288,7 +291,7 @@ Phase 1 のストリームは `/app/usage` のみ。加えて `ZSTREAMNAME` ご�
 
 `os_account_bk` は `<hardware_uuid>:<uid>`。電源の `machine_bk` とは別の hub に入る。スクリーンタイムは OS ユーザーの DB であり、スリープはマシン単位だからである。`source_device_ref` は列として残すが hub にはしない。
 
-一意: `(usage_interval_id, batch_id)`。他列は `hardware_uuid`, `uid`, `person_id`, `bundle_id`, `started_at`, `ended_at`, `duration_seconds`, `source_device_ref`, `payload`, `hashdiff`, `vault_loaded_at`。
+一意: `(usage_interval_id, batch_id)`。他列は `hardware_uuid`, `uid`, `computer_name`, `model`, `os_version`, `person_id`, `bundle_id`, `started_at`, `ended_at`, `duration_seconds`, `source_device_ref`, `payload`, `hashdiff`, `vault_loaded_at`。`computer_name` は区間のキーではなく、同じバッチのマシン属性である。
 
 ## 9. `apple_health`
 
@@ -400,8 +403,11 @@ landing は Raw Vault の外、既存と同じく staging inbox である。
 | hardware UUID | マシン。スリープと起動の主体 | `IOPlatformUUID` | **`hub_machine`**。BK は UUID そのもの |
 | uid | そのマシン上の macOS アカウント。`knowledgeC.db` の主体 | `501` | **`hub_os_account`**。BK は `<hardware_uuid>:<uid>` |
 | `ZSOURCE` の端末参照 | 未解釈の文字列。iPhone かもしれないし、そうでないかもしれない | 空、または DB 依存の ID | hub にしない。区間 sat の属性 |
+| コンピュータ名 | 人が付ける表示名。改名できる。別の Mac が同じ名前を継ぐこともある | `scutil --get ComputerName` | hub にしない。**`sat_machine_details`** |
 
 接頭辞 `macos:` を付けて `hub_device` に足すと、衝突は避けられるが、`device_hk` の意味が「topic のハッシュ」ではなくなる。あとから「この topic はこの Mac だ」と分かっても、1 行に潰せず、別リンクが必要になる。最初から分けておく。
+
+`hub_device` にコンピュータ名を入れるのも同じずれである。`device_bk` は OwnTracks の配信名なので、Mac の表示名を足すと「デバイス」の意味がまた二つになる。名前が変わると別デバイスに見え、マシンを買い替えて同じ名前を付けると別の Mac と繋がる。表示するときは `hub_machine` の最新 `sat_machine_details` を見る。電源バッチもスクリーンタイムバッチも `computer_name` を持つので、次の送信で改名が残る。名前だけの変化を即時に送る専用バッチは作らない。
 
 同一視は、根拠ができたときだけの link とする（このラウンドでは作らない）。
 
@@ -433,9 +439,10 @@ link_usage_interval_application
 
 sat_macos_power_event            kind, message, raw_line, occurred_at
 sat_macos_screentime_interval    ended_at, duration, source_device_ref を hashdiff に含める
+sat_machine_details              computer_name, model, os_version。hashdiff が変わったときだけ新行
 ```
 
-`hub_machine` の表示名（hostname, model, os_version）は、変わっても BK ではない。必要になったら `sat_machine_details` を足す。Phase 1 の電源 sat はイベント側だけでよい。
+`computer_name` は電源イベントの hashdiff には入れない。改名で過去のスリープが別イベントにならないようにするためである。スクリーンタイムの区間 hashdiff にも入れない。
 
 sat は insert-only。同一 BK で hashdiff が同じ行は足さない。必須メタデータは `load_dts`, `record_source`, `batch_id`。dbt の `hash_key` / `hash_diff` を使う。
 

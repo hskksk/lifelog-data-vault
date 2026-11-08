@@ -18,7 +18,8 @@
 
 ## Satellites (examples)
 
-- `sat_device_details`
+- `sat_device_details` — OwnTracks topic 用。Mac のコンピュータ名は入れない
+- `sat_machine_details` — `computer_name`, model, os version. See [macos-local-ingest.md](./macos-local-ingest.md)
 - `sat_observation_value`
 - `sat_observation_quality`
 - `sat_macos_power_event`, `sat_macos_screentime_interval`, `sat_apple_health_record`, `sat_apple_health_workout`, `sat_apple_health_activity_summary` — see [macos-local-ingest.md](./macos-local-ingest.md)
