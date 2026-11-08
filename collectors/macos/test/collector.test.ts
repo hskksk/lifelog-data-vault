@@ -1,4 +1,5 @@
-import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { execFileSync } from "node:child_process";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -7,7 +8,7 @@ import { describe, expect, it } from "vitest";
 import { chunkEvents } from "../src/chunk";
 import { writeConfigTemplate } from "../src/config";
 import { parseIoregPlatformUuid, powerEnvelopes, powerEventsInWindow } from "../src/power";
-import { screenTimeQuery } from "../src/screentime";
+import { extractScreenTime, screenTimeQuery } from "../src/screentime";
 import { readState, windowStart, writeState } from "../src/state";
 
 describe("mac collector helpers", () => {
@@ -40,6 +41,76 @@ describe("mac collector helpers", () => {
         "2026-11-08T08:00:00.000Z",
       ),
     ).toEqual([]);
+  });
+
+  it("reports the launchd copier status without opening knowledgeC.db", () => {
+    const previousStatus = process.env.LIFELOG_KNOWLEDGE_COPY_STATUS;
+    const previousDetail = process.env.LIFELOG_KNOWLEDGE_COPY_DETAIL;
+    process.env.LIFELOG_KNOWLEDGE_COPY_STATUS = "full_disk_access";
+    process.env.LIFELOG_KNOWLEDGE_COPY_DETAIL = "knowledgeC.db is not readable";
+    try {
+      expect(extractScreenTime("/does-not-exist/knowledgeC.db", undefined)).toEqual({
+        ok: false,
+        reason: "full_disk_access",
+        detail: "knowledgeC.db is not readable",
+      });
+    } finally {
+      if (previousStatus === undefined) delete process.env.LIFELOG_KNOWLEDGE_COPY_STATUS;
+      else process.env.LIFELOG_KNOWLEDGE_COPY_STATUS = previousStatus;
+      if (previousDetail === undefined) delete process.env.LIFELOG_KNOWLEDGE_COPY_DETAIL;
+      else process.env.LIFELOG_KNOWLEDGE_COPY_DETAIL = previousDetail;
+    }
+  });
+
+  it("reads the launchd snapshot and does not open the original database", () => {
+    const dir = mkdtempSync(join(tmpdir(), "lifelog-knowledge-"));
+    const db = join(dir, "knowledgeC.db");
+    execFileSync("sqlite3", [
+      db,
+      `create table ZOBJECT (
+        ZSTREAMNAME text, ZVALUESTRING text, ZSTARTDATE real, ZENDDATE real, ZSOURCE integer
+      );
+      create table ZSOURCE (Z_PK integer primary key, ZDEVICEID text);
+      insert into ZSOURCE (Z_PK, ZDEVICEID) values (1, 'mac');
+      insert into ZOBJECT (ZSTREAMNAME, ZVALUESTRING, ZSTARTDATE, ZENDDATE, ZSOURCE)
+      values ('/app/usage', 'com.example.App', 700000000, 700000060, 1);`,
+    ]);
+    const previousFile = process.env.LIFELOG_KNOWLEDGE_SNAPSHOT;
+    const previousDir = process.env.LIFELOG_KNOWLEDGE_SNAPSHOT_DIR;
+    process.env.LIFELOG_KNOWLEDGE_SNAPSHOT = db;
+    process.env.LIFELOG_KNOWLEDGE_SNAPSHOT_DIR = dir;
+    try {
+      const extracted = extractScreenTime("/does-not-exist/knowledgeC.db", undefined, new Date("2026-11-08T00:00:00Z"));
+      expect(extracted.ok).toBe(true);
+      if (!extracted.ok) return;
+      expect(extracted.events.map((event) => event.bundle_id)).toEqual(["com.example.App"]);
+      expect(existsSync(dir)).toBe(false);
+    } finally {
+      if (previousFile === undefined) delete process.env.LIFELOG_KNOWLEDGE_SNAPSHOT;
+      else process.env.LIFELOG_KNOWLEDGE_SNAPSHOT = previousFile;
+      if (previousDir === undefined) delete process.env.LIFELOG_KNOWLEDGE_SNAPSHOT_DIR;
+      else process.env.LIFELOG_KNOWLEDGE_SNAPSHOT_DIR = previousDir;
+    }
+  });
+
+  it("ignores a snapshot directory it did not create", () => {
+    const dir = mkdtempSync(join(tmpdir(), "keep-me-"));
+    mkdirSync(dir, { recursive: true });
+    writeFileSync(join(dir, "sentinel"), "stay");
+    const previousFile = process.env.LIFELOG_KNOWLEDGE_SNAPSHOT;
+    const previousDir = process.env.LIFELOG_KNOWLEDGE_SNAPSHOT_DIR;
+    process.env.LIFELOG_KNOWLEDGE_SNAPSHOT = join(dir, "knowledgeC.db");
+    process.env.LIFELOG_KNOWLEDGE_SNAPSHOT_DIR = dir;
+    try {
+      const extracted = extractScreenTime("/does-not-exist/knowledgeC.db", undefined);
+      expect(extracted.ok).toBe(false);
+      expect(existsSync(join(dir, "sentinel"))).toBe(true);
+    } finally {
+      if (previousFile === undefined) delete process.env.LIFELOG_KNOWLEDGE_SNAPSHOT;
+      else process.env.LIFELOG_KNOWLEDGE_SNAPSHOT = previousFile;
+      if (previousDir === undefined) delete process.env.LIFELOG_KNOWLEDGE_SNAPSHOT_DIR;
+      else process.env.LIFELOG_KNOWLEDGE_SNAPSHOT_DIR = previousDir;
+    }
   });
 
   it("splits screen time queries without inventing a device column", () => {

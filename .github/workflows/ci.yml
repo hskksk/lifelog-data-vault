@@ -28,6 +28,18 @@ jobs:
       - run: pnpm --filter @lifelog/macos-collector typecheck
       - run: pnpm --filter @lifelog/macos-collector test
 
+  macos-collect:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.22"
+      - run: go test ./...
+        working-directory: deploy/macos
+      - run: sh -n install-app.sh
+        working-directory: deploy/macos
+
   dbt:
     runs-on: ubuntu-latest
     steps:
