@@ -1,5 +1,5 @@
 import { execFileSync } from "node:child_process";
-import { readFileSync } from "node:fs";
+import { chmodSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
 
@@ -13,12 +13,32 @@ export function defaultStateDir(): string {
   return join(homedir(), "Library", "Application Support", "lifelog");
 }
 
+export const CONFIG_URL_PLACEHOLDER = "https://<project-ref>.supabase.co/functions/v1/macos-ingest";
+
+export function configTemplate(ingestUrl = CONFIG_URL_PLACEHOLDER): string {
+  return `${JSON.stringify({ ingest_url: ingestUrl }, null, 2)}\n`;
+}
+
+export function writeConfigTemplate(
+  stateDir: string,
+  ingestUrl?: string,
+): { path: string; created: boolean } {
+  mkdirSync(stateDir, { recursive: true });
+  chmodSync(stateDir, 0o700);
+  const path = join(stateDir, "config.json");
+  if (existsSync(path)) return { path, created: false };
+  writeFileSync(path, configTemplate(ingestUrl), { encoding: "utf8", mode: 0o600 });
+  return { path, created: true };
+}
+
 export function loadCollectorConfig(env: NodeJS.ProcessEnv = process.env): CollectorConfig {
   const stateDir = env.LIFELOG_STATE_DIR || defaultStateDir();
   const fromFile = readIngestUrl(join(stateDir, "config.json"));
   const ingestUrl = env.MACOS_INGEST_URL || fromFile;
   if (!ingestUrl) {
-    throw new Error("Set MACOS_INGEST_URL or ingest_url in ~/Library/Application Support/lifelog/config.json");
+    throw new Error(
+      "Set MACOS_INGEST_URL, or write ingest_url with: tsx src/cli.ts init-config",
+    );
   }
   const bearerToken = env.MACOS_INGEST_BEARER_TOKEN || readKeychainToken();
   if (!bearerToken) {

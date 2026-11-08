@@ -130,8 +130,9 @@ Design: [docs/architecture/macos-local-ingest.md](docs/architecture/macos-local-
 The Mac collector posts normalized JSON to `macos-ingest`. `hub_device` stays the OwnTracks topic. Power events hang off `hub_machine` (hardware UUID). Screen Time hangs off `hub_os_account`. The computer name is `sat_machine_details`, not a hub key.
 
 ```bash
-# ~/Library/Application Support/lifelog/config.json
-# { "ingest_url": "https://<project-ref>.supabase.co/functions/v1/macos-ingest" }
+pnpm --filter @lifelog/macos-collector exec tsx src/cli.ts init-config
+# edits ~/Library/Application Support/lifelog/config.json
+# optional: init-config https://<project-ref>.supabase.co/functions/v1/macos-ingest
 security add-generic-password -s lifelog-macos-ingest -a bearer -w "$MACOS_INGEST_BEARER_TOKEN"
 pnpm --filter @lifelog/macos-collector exec tsx src/cli.ts run
 ```

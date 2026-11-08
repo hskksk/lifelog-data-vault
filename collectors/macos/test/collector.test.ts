@@ -1,10 +1,11 @@
-import { mkdtempSync } from "node:fs";
+import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 import { describe, expect, it } from "vitest";
 
 import { chunkEvents } from "../src/chunk";
+import { writeConfigTemplate } from "../src/config";
 import { parseIoregPlatformUuid, powerEnvelopes, powerEventsInWindow } from "../src/power";
 import { screenTimeQuery } from "../src/screentime";
 import { readState, windowStart, writeState } from "../src/state";
@@ -50,6 +51,18 @@ describe("mac collector helpers", () => {
   it("chunks by count", () => {
     const chunks = chunkEvents([1, 2, 3], (chunk) => ({ events: chunk }), 2, 1_500_000);
     expect(chunks).toEqual([[1, 2], [3]]);
+  });
+
+  it("writes a config template once and does not replace it", () => {
+    const dir = mkdtempSync(join(tmpdir(), "lifelog-config-"));
+    const first = writeConfigTemplate(dir);
+    expect(first.created).toBe(true);
+    const body = JSON.parse(readFileSync(first.path, "utf8")) as { ingest_url: string };
+    expect(body.ingest_url).toContain("macos-ingest");
+    writeFileSync(first.path, '{"ingest_url":"keep-me"}\n');
+    const second = writeConfigTemplate(dir, "https://example.test/macos-ingest");
+    expect(second.created).toBe(false);
+    expect(readFileSync(first.path, "utf8")).toContain("keep-me");
   });
 
   it("remembers the covered-until watermark", () => {
