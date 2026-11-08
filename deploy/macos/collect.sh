@@ -1,6 +1,7 @@
 #!/bin/sh
-# launchd runs this. It does not inherit a login shell PATH, and tsx only
-# applies collectors/macos/tsconfig.json when that directory is the cwd.
+# Terminal helper. Launchd runs deploy/macos/lifelog-macos-collect instead:
+# a shell script's shebang is /bin/sh, so Full Disk Access would cover the shell.
+# tsx only applies collectors/macos/tsconfig.json when that directory is the cwd.
 set -eu
 
 ROOT=$(CDPATH= cd -- "$(dirname "$0")/../.." && pwd)

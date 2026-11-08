@@ -1,7 +1,7 @@
 import { execFileSync } from "node:child_process";
 import { copyFileSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { basename, join, sep } from "node:path";
 
 import {
   canonicalOffsetTimestamp,
@@ -70,27 +70,56 @@ function columnNames(dbPath: string, table: string): string[] {
   return rows.map((row) => row.name ?? "").filter((name) => name.length > 0);
 }
 
+function presetCopyFailure(): ScreenTimeExtract | null {
+  const status = process.env.LIFELOG_KNOWLEDGE_COPY_STATUS;
+  if (status !== "full_disk_access" && status !== "sqlite") return null;
+  const detail = process.env.LIFELOG_KNOWLEDGE_COPY_DETAIL;
+  if (status === "full_disk_access") {
+    return { ok: false, reason: "full_disk_access", detail: detail || "knowledgeC.db is not readable" };
+  }
+  return { ok: false, reason: "sqlite", detail: detail || "could not copy knowledgeC.db" };
+}
+
+// The launchd binary copies knowledgeC.db before node starts. Only a directory
+// it created (lifelog-knowledge-*) is accepted, so a stray env value cannot
+// point this process at another folder and then delete it.
+function trustedSnapshot(): { dir: string; file: string } | null {
+  const dir = process.env.LIFELOG_KNOWLEDGE_SNAPSHOT_DIR;
+  const file = process.env.LIFELOG_KNOWLEDGE_SNAPSHOT;
+  if (!dir || !file) return null;
+  if (!basename(dir).startsWith("lifelog-knowledge-")) return null;
+  const prefix = dir.endsWith(sep) ? dir : dir + sep;
+  if (!file.startsWith(prefix)) return null;
+  return { dir, file };
+}
+
 export function extractScreenTime(knowledgeDb: string, coveredUntil: string | undefined, now = new Date()): ScreenTimeExtract {
-  const destDir = mkdtempSync(join(tmpdir(), "lifelog-knowledge-"));
-  const copyPath = join(destDir, "knowledgeC.db");
+  const preset = presetCopyFailure();
+  if (preset) return preset;
+
+  const trusted = trustedSnapshot();
+  const destDir = trusted?.dir ?? mkdtempSync(join(tmpdir(), "lifelog-knowledge-"));
+  const copyPath = trusted?.file ?? join(destDir, "knowledgeC.db");
   try {
-    try {
-      copyFileSync(knowledgeDb, copyPath);
-      for (const suffix of ["-wal", "-shm"]) {
-        try {
-          copyFileSync(`${knowledgeDb}${suffix}`, `${copyPath}${suffix}`);
-        } catch (error) {
-          const code = (error as NodeJS.ErrnoException).code;
-          if (code !== "ENOENT") throw error;
+    if (!trusted) {
+      try {
+        copyFileSync(knowledgeDb, copyPath);
+        for (const suffix of ["-wal", "-shm"]) {
+          try {
+            copyFileSync(`${knowledgeDb}${suffix}`, `${copyPath}${suffix}`);
+          } catch (error) {
+            const code = (error as NodeJS.ErrnoException).code;
+            if (code !== "ENOENT") throw error;
+          }
         }
+      } catch (error) {
+        const code = (error as NodeJS.ErrnoException).code;
+        const message = error instanceof Error ? error.message : String(error);
+        if (code === "EPERM" || message.includes("Operation not permitted")) {
+          return { ok: false, reason: "full_disk_access", detail: "knowledgeC.db is not readable" };
+        }
+        return { ok: false, reason: "sqlite", detail: "could not copy knowledgeC.db" };
       }
-    } catch (error) {
-      const code = (error as NodeJS.ErrnoException).code;
-      const message = error instanceof Error ? error.message : String(error);
-      if (code === "EPERM" || message.includes("Operation not permitted")) {
-        return { ok: false, reason: "full_disk_access", detail: "knowledgeC.db is not readable" };
-      }
-      return { ok: false, reason: "sqlite", detail: "could not copy knowledgeC.db" };
     }
 
     let columns: string[];

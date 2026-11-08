@@ -127,10 +127,12 @@ Bearer はキーチェーン（service `lifelog-macos-ingest`）。URL だけ `c
 | ソース | 必要なもの |
 |--------|------------|
 | 電源 | なし（`pmset`） |
-| スクリーンタイム | コレクタ実行ファイルへのフルディスクアクセス。DB・WAL・SHM を一時ディレクトリへコピーしてから `sqlite3` で読む |
+| スクリーンタイム | `deploy/macos/lifelog-macos-collect` へのフルディスクアクセス。この Go バイナリだけが DB・WAL・SHM を一時ディレクトリへコピーし、その後 node がコピーを `sqlite3` で読む。`/bin/sh` と `node` には付けない |
 | ヘルスケア | ドロップフォルダの読み書きだけ。書き出し操作自体はユーザーがヘルスケア.app で行う |
 
-コピーが `EPERM` のときはスクリーンタイムをスキップし、理由をローカルログに残す。権限回復のあと、`covered_until` を戻さなくても重なり窓の外は既に DB から消えていることがある。初回導入時にフルディスクアクセスを先に付ける。
+スクリプトに実行権限を付けて plist から `/bin/sh` を外しても、shebang の実体はシェルなので許可範囲は狭まらない。launchd が起動するのは Go の単体バイナリで、知識 DB を開くのはそのプロセスだけである。
+
+コピーが `EPERM` のときはスクリーンタイムをスキップし、理由をローカルログに残す。権限回復のあと、`covered_until` を戻さなくても重なり窓の外は既に DB から消えていることがある。初回導入時にフルディスクアクセスを先に付ける。再ビルドすると署名が変わるので、そのバイナリを付け直す。
 
 ### 5.3 窓
 
@@ -496,7 +498,8 @@ supabase/functions/macos-materialize/
 config/apple_health_types.yml
 config/sources.yml                        # 既定値。enabled は false のまま始める
 config/person_map.yml                     # 任意の machines: / os_accounts:
-deploy/macos/collect.sh                   # launchd が実行するスクリプト
+deploy/macos/cmd/lifelog-macos-collect/  # launchd が起動する Go バイナリ。FDA の対象
+deploy/macos/collect.sh                   # 端末から同じコレクタを起動する
 deploy/macos/launchd/                     # plist 雛形。登録手順は README
 packages/dbt/models/...                   # tag:macos
 ```

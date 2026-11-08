@@ -137,18 +137,24 @@ security add-generic-password -s lifelog-macos-ingest -a bearer -w "$MACOS_INGES
 pnpm --filter @lifelog/macos-collector exec tsx src/cli.ts run
 ```
 
-Hourly collection is `deploy/macos/collect.sh`, started by the LaunchAgent template. Screen Time needs Full Disk Access on the `node` binary that script runs. Set the Edge secret `MACOS_INGEST_BEARER_TOKEN` before the collector can get a 202. dbt: Actions → **macos-dbt**, or the hourly owntracks-dbt workflow which also builds `tag:macos`.
+Hourly collection is the LaunchAgent. It runs one Go binary, `deploy/macos/lifelog-macos-collect`. That binary copies `knowledgeC.db` and then starts the existing node collector on the copy. Screen Time needs Full Disk Access on that Go binary only. Making `deploy/macos/collect.sh` executable does not narrow the grant: its shebang still runs `/bin/sh`. `collect.sh` remains a terminal helper. Set the Edge secret `MACOS_INGEST_BEARER_TOKEN` before the collector can get a 202. dbt: Actions → **macos-dbt**, or the hourly owntracks-dbt workflow which also builds `tag:macos`.
 
-Register the agent. `REPLACE_WITH_REPO` is the checkout path. `$HOME` is the macOS home directory. Re-running replaces the installed plist.
+Register the agent. `REPLACE_WITH_REPO` is the checkout path. `$HOME` is the macOS home directory. Re-running replaces the installed plist. Rebuilding the binary changes its signature, so add the new file to Full Disk Access again.
 
 ```bash
 REPO=REPLACE_WITH_REPO
+( cd "$REPO/deploy/macos" && go build -o lifelog-macos-collect ./cmd/lifelog-macos-collect )
 mkdir -p "$HOME/Library/LaunchAgents" "$HOME/Library/Logs"
 sed \
   -e "s|REPLACE_WITH_REPO|$REPO|g" \
   -e "s|REPLACE_WITH_HOME|$HOME|g" \
   "$REPO/deploy/macos/launchd/dev.lifelog.macos-collect.plist" \
   > "$HOME/Library/LaunchAgents/dev.lifelog.macos-collect.plist"
+```
+
+Add `$REPO/deploy/macos/lifelog-macos-collect` in System Settings → Privacy & Security → Full Disk Access (⇧⌘G, then paste the path). Do not add `/bin/sh` or `node`.
+
+```bash
 launchctl bootout "gui/$(id -u)/dev.lifelog.macos-collect" 2>/dev/null || true
 launchctl bootstrap "gui/$(id -u)" "$HOME/Library/LaunchAgents/dev.lifelog.macos-collect.plist"
 launchctl kickstart -k "gui/$(id -u)/dev.lifelog.macos-collect"

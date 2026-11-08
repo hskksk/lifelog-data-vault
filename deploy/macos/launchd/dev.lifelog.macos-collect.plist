@@ -4,10 +4,12 @@
   Registration commands are in the README (Mac power, Screen Time, Health).
   The installed plist must not still contain REPLACE_WITH_REPO or REPLACE_WITH_HOME.
 
-  The agent runs deploy/macos/collect.sh. ingest_url stays in
-  ~/Library/Application Support/lifelog/config.json.
+  Build deploy/macos/lifelog-macos-collect with go, then point this agent at it.
+  A shell script cannot hold its own Full Disk Access grant: the shebang still
+  runs /bin/sh. Grant Full Disk Access to lifelog-macos-collect only.
+
+  ingest_url stays in ~/Library/Application Support/lifelog/config.json.
   The bearer token stays in the keychain (service lifelog-macos-ingest).
-  Grant Full Disk Access to the node binary collect.sh resolves, not to the shell script.
 -->
 <plist version="1.0">
 <dict>
@@ -15,8 +17,7 @@
   <string>dev.lifelog.macos-collect</string>
   <key>ProgramArguments</key>
   <array>
-    <string>/bin/sh</string>
-    <string>REPLACE_WITH_REPO/deploy/macos/collect.sh</string>
+    <string>REPLACE_WITH_REPO/deploy/macos/lifelog-macos-collect</string>
   </array>
   <key>RunAtLoad</key>
   <true/>
