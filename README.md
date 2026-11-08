@@ -89,13 +89,13 @@ Realtime **`DB_HOST: nxdomain`** on older commits came from the Realtime contain
 
 Design: [docs/architecture/metabase.md](docs/architecture/metabase.md). Setup: [docs/operations/metabase-setup.md](docs/operations/metabase-setup.md).
 
-`make supabase-reset` creates `bi_reader` / `local-bi-reader` (SELECT on schemas `mart` and `business_vault`). Then:
+`make supabase-reset` creates `bi_reader` / `local-bi-reader` (SELECT on schemas `mart`, `business_vault`, and `raw_vault`). Then:
 
 ```bash
 make metabase-up   # http://127.0.0.1:3000
 ```
 
-In Metabase, connect to `host.docker.internal:54422`, database `postgres`, user `bi_reader`, schemas `mart` and `business_vault`. To add the hosted database on that same Metabase, set `SUPABASE_DB_PASSWORD`, `SUPABASE_PROJECT_REF`, and `METABASE_EMAIL` / `METABASE_PASSWORD` (or `METABASE_API_KEY`), then `make metabase-connect-remote`. That uses the session pooler as `bi_reader.<project-ref>` (Vault `bi_reader_password`; seed does not run on prod).
+In Metabase, connect to `host.docker.internal:54422`, database `postgres`, user `bi_reader`, schemas `mart`, `business_vault`, and `raw_vault`. To add the hosted database on that same Metabase, set `SUPABASE_DB_PASSWORD`, `SUPABASE_PROJECT_REF`, and `METABASE_EMAIL` / `METABASE_PASSWORD` (or `METABASE_API_KEY`), then `make metabase-connect-remote`. That uses the session pooler as `bi_reader.<project-ref>` (Vault `bi_reader_password`; seed does not run on prod).
 
 ### Legacy Docker Postgres
 

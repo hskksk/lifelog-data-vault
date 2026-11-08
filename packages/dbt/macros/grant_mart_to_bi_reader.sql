@@ -1,6 +1,6 @@
-{# Post-hook for mart and business_vault models. One statement so Postgres accepts it.
+{# Post-hook for mart, business_vault, and raw_vault models. One statement so Postgres accepts it.
    No-op when bi_reader is absent (legacy Compose Postgres has no Vault migration).
-   Views stay security_invoker = false, so the owner reads raw_vault and bi_reader does not need USAGE there. #}
+   Views stay security_invoker = false, so the owner runs the query. #}
 {% macro grant_mart_to_bi_reader() %}
 do $bi_reader$
 begin

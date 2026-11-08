@@ -49,7 +49,7 @@ flowchart TB
 1. **ingest:** 1 POST → Bronze 1 オブジェクト + `ops.ingest_batch`（`status=received`）
 2. **materialize:** Cron が Edge を起動 → 未処理 batch を読み Bronze → `staging.owntracks_location_inbox`
 3. **dbt:** Actions が `vault_loaded_at is null` の行を対象に Raw Vault / mart を更新（既存 dbt プロジェクト）
-4. **BI:** Metabase が `bi_reader` で `mart` と `business_vault` を読む（[metabase.md](./metabase.md)）
+4. **BI:** Metabase が `bi_reader` で `mart`、`business_vault`、`raw_vault` を読む（[metabase.md](./metabase.md)）
 
 ---
 
@@ -61,7 +61,7 @@ flowchart TB
 |----------|------|-----------|
 | `ops` | ingest_batch, dbt_run_log（任意） | **exposed しない** |
 | `staging` | owntracks_location_inbox 等 | **exposed しない** |
-| `raw_vault` | Hub / Link / Sat | **exposed しない** |
+| `raw_vault` | Hub / Link / Sat | **exposed しない**。Metabase は `bi_reader` で SELECT（[metabase.md](./metabase.md)） |
 | `business_vault` | bv_* | **exposed しない**。Metabase は `bi_reader` で SELECT（[metabase.md](./metabase.md)） |
 | `mart` | BI 用 view/table | **exposed しない**。Metabase は `bi_reader` で Postgres 直結（[metabase.md](./metabase.md)） |
 
@@ -277,7 +277,7 @@ jobs:
 - [x] スキーマを API から隔離 + RLS enabled — S1 `config.toml` + migrations
 - [ ] secret key / ingest Bearer をクライアント（OwnTracks）に渡さない（ingest は専用 Bearer のみ）
 - [x] GitHub Secret の DB URL は `dbt_runner` 専用ユーザー — migration + README
-- [x] BI は `bi_reader`（`mart` と `business_vault` の SELECT）。Data API には出さない — migration + `config.toml`
+- [x] BI は `bi_reader`（`mart`、`business_vault`、`raw_vault` の SELECT）。Data API には出さない — migration + `config.toml`
 
 ---
 

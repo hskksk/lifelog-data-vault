@@ -3,7 +3,10 @@
     unique_key='sat_pk',
     schema='raw_vault',
     tags=['owntracks'],
-    post_hook="{{ mark_owntracks_inbox_loaded() }}",
+    post_hook=[
+      "{{ mark_owntracks_inbox_loaded() }}",
+      "{{ grant_mart_to_bi_reader() }}",
+    ],
 ) }}
 
 select
