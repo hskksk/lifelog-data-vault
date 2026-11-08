@@ -1,6 +1,6 @@
 # dbt GitHub Actions（本番）
 
-[`owntracks-dbt.yml`](../../.github/workflows/owntracks-dbt.yml) は **手動** `workflow_dispatch` のみ。**dbt 1.12 GA**（[`requirements-ci.txt`](../../packages/dbt/requirements-ci.txt)）では Postgres プロファイルに `url:` を使わない。CI は deploy と同じ [pooler-url.ts](../../scripts/lib/supabase-pooler-url.ts) で session pooler を組み立て、**Vault** の `dbt_runner_password` で `dbt_runner.<project-ref>` として接続し、[`resolve-dbt-connection.ts`](../../scripts/resolve-dbt-connection.ts) が **`packages/dbt/profiles.yml` を `--write-profiles` で生成**（パスワードを GITHUB_OUTPUT / env に載せない。**`SUPABASE_DB_URL` secret は不要**）。スキーマは migration 済みのため dbt は `+create_schema: false`。デバッグ用 URL 一行は [`resolve-dbt-db-url.ts`](../../scripts/resolve-dbt-db-url.ts)。
+[`owntracks-dbt.yml`](../../.github/workflows/owntracks-dbt.yml) は **毎時**（`schedule: 0 * * * *` UTC）と **手動** `workflow_dispatch`。**dbt 1.12 GA**（[`requirements-ci.txt`](../../packages/dbt/requirements-ci.txt)）では Postgres プロファイルに `url:` を使わない。CI は deploy と同じ [pooler-url.ts](../../scripts/lib/supabase-pooler-url.ts) で session pooler を組み立て、**Vault** の `dbt_runner_password` で `dbt_runner.<project-ref>` として接続し、[`resolve-dbt-connection.ts`](../../scripts/resolve-dbt-connection.ts) が **`packages/dbt/profiles.yml` を `--write-profiles` で生成**（パスワードを GITHUB_OUTPUT / env に載せない。**`SUPABASE_DB_URL` secret は不要**）。スキーマは migration 済みのため dbt は `+create_schema: false`。デバッグ用 URL 一行は [`resolve-dbt-db-url.ts`](../../scripts/resolve-dbt-db-url.ts)。
 
 ## 1. 本番 Vault（1 回）
 
@@ -37,7 +37,8 @@ migration `ops.sync_dbt_runner_password_from_vault()` が Vault の値を `dbt_r
 
 ## 4. 実行
 
-Actions → **owntracks-dbt** → **Run workflow**。
+- **定期:** 毎時 0 分（UTC）に自動実行
+- **手動:** Actions → **owntracks-dbt** → **Run workflow**
 
 **`stg_owntracks__location` が空:** ビューは `where vault_loaded_at is null` のみ（Vault 投入済み行は inbox に残るが stg には出ない）。未処理行があるのに stg が空なら **RLS** — migration `20261104100000_dbt_runner_staging_inbox_rls.sql` を `db push` してから dbt を再実行。データ本体は `raw_vault.*` / `mart.*` を見る。
 

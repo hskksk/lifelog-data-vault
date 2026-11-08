@@ -51,7 +51,7 @@ Or serve both functions: `make supabase-functions-serve` (needs `SUPABASE_SECRET
 
 ### dbt (S4 — GitHub Actions)
 
-Run [`.github/workflows/owntracks-dbt.yml`](.github/workflows/owntracks-dbt.yml) manually (**Actions → owntracks-dbt → Run workflow**). It runs `dbt build --select tag:owntracks` (no cron until we turn scheduling back on).
+[`.github/workflows/owntracks-dbt.yml`](.github/workflows/owntracks-dbt.yml) runs `dbt build --select tag:owntracks` on a **hourly schedule** (`0 * * * *` UTC) and via **Actions → owntracks-dbt → Run workflow**.
 
 **Production setup:** [docs/operations/dbt-ci-setup.md](docs/operations/dbt-ci-setup.md)
 
