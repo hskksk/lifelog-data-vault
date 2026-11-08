@@ -19,7 +19,7 @@
 |------|------|
 | 公開経路 | **Supabase Edge Function**（本番）。自前ホスト時は [Cloudflare Tunnel](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/)（レガシー） |
 | 空間キー | **最初から H3**（resolution 9）を `hub_location_h3` のビジネスキー |
-| 端末キー | **`topic` 全文**を `hub_device` の BK（例: `owntracks/me/iphone`） |
+| 端末キー | **`topic` 全文**を `hub_device` の BK（例: `owntracks/me/iphone`）。ハードウェア UUID や OS アカウントは別 hub（[macos-local-ingest.md](./macos-local-ingest.md)） |
 | 人物キー | **`config/person_map.yml` の `person_id`**（個人は `me` 等 1 行で開始） |
 
 `tid` は HTTP モードで必須だが **Hub キーにしない**（表示・Sat 属性として保持。端末識別は `topic` が安定）。

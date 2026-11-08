@@ -11,10 +11,9 @@ Mac 上のデータを、OwnTracks と同じく **Supabase Edge → Storage Bron
 
 | 順 | 内容 |
 |----|------|
-| **1** | `macos_power`。`pmset -g log` の Sleep / Wake / DarkWake / Start / Shutdown / Restart |
-| **2** | `macos_screentime`。`knowledgeC.db` の `/app/usage` 区間 |
-| **3** | `apple_health`。ヘルスケア.app の「すべてのヘルスケアデータを書き出す」ZIP を、Mac 上でレコード単位に分解して送る |
-| **4** | Raw Vault（hub / link / sat）と、日次の Business Vault / mart |
+| **いま作る** | `macos_power` と `macos_screentime`。ops の batch は既存のまま。Raw Vault は `hub_machine` と `hub_os_account` を新設し、`hub_device` は触らない |
+| **後** | `apple_health`。センサ識別子も `hub_device` には入れない。入れる hub はそのときに決める |
+| **さらに後** | 日次の Business Vault / mart。OwnTracks topic と machine / os account の同一視リンク |
 
 非スコープは [§15](#15-非スコープ)。
 
@@ -27,8 +26,8 @@ Mac 上のデータを、OwnTracks と同じく **Supabase Edge → Storage Bron
 | Bronze | 既存規約 `bronze/<record_source>/dt=YYYY-MM-DD/batch=<uuid>/`。中身は正規化 JSON |
 | パースの分担 | **正規化は Mac**。materialize は検証・ID 再計算・inbox 投入だけ |
 | 関数の数 | ingest 1 + materialize 1。`record_source` と `entity` で振り分ける。ソースごとに関数を複製しない |
-| 端末キー | ホスト名は使わない。電源は `macos:<hardware_uuid>`。スクリーンタイムは OS ユーザーを足して `macos:<hardware_uuid>:uid:<uid>` |
-| 人物キー | 既存 `config/person_map.yml` の `default_person_id`。任意で `devices:` に device BK → `person_id` |
+| 識別子 | **`hub_device` は OwnTracks の topic 専用のまま**。電源は `hub_machine`（hardware UUID）。スクリーンタイムは `hub_os_account`（そのマシン上の uid）。種類が違うので接頭辞を付けて一つの hub に混ぜない |
+| 人物キー | `hub_person` は人そのものなのでソースをまたいで共有する。`default_person_id`。任意で `machines:` / `os_accounts:` |
 | ハッシュ | 既存の `hash_key` / `hash_diff` と同じ **md5**。改ざん検知には使わない |
 | ヘルスケア原本 | ZIP / XML は Edge に送らない。Mac の archive に残す。Bronze に載るのはレコード JSON |
 | 初期の型 | ヘルスケアの Record は allowlist（歩数・心拍・体重・睡眠）。空 allowlist は全 Record 型。Workout と ActivitySummary は最初から対象 |
@@ -248,8 +247,8 @@ ID と hashdiff は materialize が再計算する。コレクタの seen-set �
 |----|------|
 | `batch_id` | FK `ops.ingest_batch` |
 | `power_event_id` | 上記 |
-| `device_bk` | `macos:<hardware_uuid>` |
-| `person_id` | person_map |
+| `machine_bk` | hardware UUID そのもの。接頭辞は付けない |
+| `person_id` | person_map の `machines:` または `default_person_id` |
 | `occurred_at`, `kind`, `message`, `raw_line` | イベント |
 | `payload` | jsonb。エンベロープの collector と当該イベント |
 | `hashdiff` | sat に載る記述列 |
@@ -287,9 +286,9 @@ Phase 1 のストリームは `/app/usage` のみ。加えて `ZSTREAMNAME` ご�
 
 `staging.macos_screentime_interval_inbox`
 
-`device_bk` は `macos:<hardware_uuid>:uid:<uid>`。電源の device BK とは別行にする。スクリーンタイムは OS ユーザーの DB であり、電源はマシン単位だからである。
+`os_account_bk` は `<hardware_uuid>:<uid>`。電源の `machine_bk` とは別の hub に入る。スクリーンタイムは OS ユーザーの DB であり、スリープはマシン単位だからである。`source_device_ref` は列として残すが hub にはしない。
 
-一意: `(usage_interval_id, batch_id)`。他列は電源 inbox に準じる（`bundle_id`, `started_at`, `ended_at`, `duration_seconds`, `source_device_ref`, `payload`, `hashdiff`, `vault_loaded_at`）。
+一意: `(usage_interval_id, batch_id)`。他列は `hardware_uuid`, `uid`, `person_id`, `bundle_id`, `started_at`, `ended_at`, `duration_seconds`, `source_device_ref`, `payload`, `hashdiff`, `vault_loaded_at`。
 
 ## 9. `apple_health`
 
@@ -350,7 +349,7 @@ ActivitySummary は同じ日の値が更新される。
 
 全量書き出しを `(id, batch_id)` で受けると、inbox が書き出しの回数だけ膨れる。スナップショット源だけ一意を ID 全体にする。電源・スクリーンタイム・OwnTracks は従来どおり `(id, batch_id)`。
 
-センサ端末の BK は `apple_health:` + `md5(source_name || device)`。コレクタ Mac の BK は `collected_by_device_bk`（スクリーンタイムと同じユーザー付きキー）として sat に残し、センサと取り違えない。
+センサの識別子は `hub_device` に入れない。ヘルスケアを実装するとき、記録元（`sourceName` と `device` 属性）をどの hub にするかを別に決める。コレクタ Mac との関係は `hub_machine` / `hub_os_account` への link で表す。
 
 ### 9.5 inbox の主な列
 
@@ -366,41 +365,79 @@ ActivitySummary は同じ日の値が更新される。
 
 どの inbox も RLS を有効にし、`anon` / `authenticated` からは剥がす。OwnTracks inbox と同じである。
 
-## 10. Raw Vault
+## 10. ops と Raw Vault
 
-`hub_device` のビジネスキーは、OwnTracks の `topic` に限らない不透明文字列とする。既存の `owntracks/...` 行はそのままである。接頭辞 `macos:` と `apple_health:` は topic と衝突しない。
+### 10.1 共有してよいもの
+
+`ops.ingest_batch` はビジネス上の「デバイス」ではない。1 回の POST の受付記録で、ソースが違ってもグレインは同じである。電源もスクリーンタイムも新しい ops テーブルは作らず、`record_source` が `macos_power` または `macos_screentime` の行を足す。
+
+| 列 | いま |
+|----|-----|
+| `batch_id`, `record_source`, `bronze_prefix` | そのままで足りる |
+| `status` | `received` → `staged`。壊れたバッチは `rejected` または `error`（[§6.2](#62-materialize)） |
+| `started_at`, `finished_at`, `error_message` | そのまま |
+
+`ops.dbt_run_log` も変えない。
+
+`hub_person` も共有する。BK は `person_id` で、OwnTracks も Mac も「誰のライフログか」を指す。これは識別子の種類が同じだからである。所属は `person_map` の宣言であり、topic と hardware UUID が同一だという意味ではない。
+
+landing は Raw Vault の外、既存と同じく staging inbox である。
+
+| inbox | 粒 |
+|-------|----|
+| `staging.macos_power_event_inbox` | 電源イベント 1 行 |
+| `staging.macos_screentime_interval_inbox` | `/app/usage` 区間 1 行 |
+
+### 10.2 `hub_device` には入れない
+
+今の `hub_device.device_bk` は OwnTracks の **topic 全文**（`owntracks/me/iphone`）である。`device_hk` は `md5(topic)` で、`link_person_device` も `(person_id, topic)` で結んでいる。これはアプリに設定した配信先の名前であり、ハードウェア番号でも OS アカウントでもない。
+
+電源・スクリーンタイム側にあるのは別種の識別子である。
+
+| 識別子 | 何か | 例 | このラウンドの hub |
+|--------|------|----|--------------------|
+| OwnTracks topic | アプリに付けた配信名。人が書き換えられる | `owntracks/me/iphone` | 既存 `hub_device`。変えない |
+| hardware UUID | マシン。スリープと起動の主体 | `IOPlatformUUID` | **`hub_machine`**。BK は UUID そのもの |
+| uid | そのマシン上の macOS アカウント。`knowledgeC.db` の主体 | `501` | **`hub_os_account`**。BK は `<hardware_uuid>:<uid>` |
+| `ZSOURCE` の端末参照 | 未解釈の文字列。iPhone かもしれないし、そうでないかもしれない | 空、または DB 依存の ID | hub にしない。区間 sat の属性 |
+
+接頭辞 `macos:` を付けて `hub_device` に足すと、衝突は避けられるが、`device_hk` の意味が「topic のハッシュ」ではなくなる。あとから「この topic はこの Mac だ」と分かっても、1 行に潰せず、別リンクが必要になる。最初から分けておく。
+
+同一視は、根拠ができたときだけの link とする（このラウンドでは作らない）。
 
 ```
-hub_person                 BK: person_id
-hub_device                 BK: device_bk（電源 / スクリーンタイム / センサ）
-hub_application            BK: bundle_id
-hub_power_event            BK: power_event_id
-hub_usage_interval         BK: usage_interval_id
-hub_observation_definition BK: hk_type
-hub_health_record          BK: health_record_id
-hub_workout                BK: workout_id
-
-link_person_device
-link_device_power_event
-link_device_usage_interval          device × usage_interval
-link_usage_interval_application     usage_interval × application
-link_person_health_record
-link_device_health_record           sensor device × health_record
-link_person_workout
-link_device_workout
-
-sat_macos_power_event
-sat_macos_screentime_interval       終了時刻と duration は hashdiff に含める
-sat_apple_health_record
-sat_apple_health_workout
-sat_apple_health_activity_summary
+link_device_machine       OwnTracks topic × hub_machine
 ```
+
+iPhone の topic と、スクリーンタイムの `source_device_ref` は、両方の実体が分かるまで結ばない。
+
+### 10.3 このラウンドの Raw Vault
+
+```
+hub_person            BK: person_id                 既存。共有
+hub_device            BK: OwnTracks topic           既存。電源・スクリーンタイムからは行を足さない
+hub_machine           BK: hardware_uuid
+hub_os_account        BK: <hardware_uuid>:<uid>
+hub_application       BK: bundle_id
+hub_power_event       BK: power_event_id
+hub_usage_interval    BK: usage_interval_id
+
+link_person_machine
+link_person_os_account
+link_machine_os_account
+link_machine_power_event
+link_os_account_usage_interval
+link_usage_interval_application
+
+sat_macos_power_event            kind, message, raw_line, occurred_at
+sat_macos_screentime_interval    ended_at, duration, source_device_ref を hashdiff に含める
+```
+
+`hub_machine` の表示名（hostname, model, os_version）は、変わっても BK ではない。必要になったら `sat_machine_details` を足す。Phase 1 の電源 sat はイベント側だけでよい。
 
 sat は insert-only。同一 BK で hashdiff が同じ行は足さない。必須メタデータは `load_dts`, `record_source`, `batch_id`。dbt の `hash_key` / `hash_diff` を使う。
 
-`observation_code` がマップできた record は、既存の語彙（`steps`, `heart_rate`, `sleep_session` ではなくサンプルなので `sleep_analysis`, `weight`）で後段の BV に渡す。汎用の `sat_observation_value` へ畳むのは Phase 4。Phase 1〜3 の正はソース sat である。
-
-ActivitySummary の「日」は `hub_health_record` に混ぜない。グレインが違う。
+ヘルスケア用の `hub_health_record` や `hub_workout` は、ヘルスケアを実装するときにこの節へ足す。センサ名を `hub_device` に流し込まない、という制約だけ先に固定する。
 
 ## 11. Business Vault / Mart（Phase 4）
 
@@ -410,7 +447,7 @@ ActivitySummary の「日」は `hub_health_record` に混ぜない。グレイ�
 | `bv_screentime_daily` | 日 × device × bundle の秒数 |
 | `bv_observation_daily` | 歩数・心拍・体重の日次 |
 | `bv_sleep_session` | 連続する睡眠カテゴリの結合 |
-| `mart_device_power_daily` | スリープ回数、起動回数 |
+| `mart_machine_power_daily` | マシンごとのスリープ回数、起動回数 |
 | `mart_pc_activity_daily` | スクリーンタイム日次。ActivityWatch を足すときもこの mart |
 | `mart_health_daily` | マップ済み observation の日次 |
 
@@ -424,7 +461,7 @@ Phase 1〜3 は inbox と sat までで止めてよい。mart の器は [data-va
 - ヘルスケアの `Me` と `ClinicalRecord` は送らない。
 - ワークアウトの経路（GPS）は送らない。
 - Bearer はキーチェーン。`config.json` と plist に書かない。
-- コレクタは個人の Mac 1 台・主要 OS ユーザー 1 人を前提にする。二人目のユーザーが同じエージェントを動かすと、スクリーンタイムは uid 付き device BK で分かれる。電源はマシン単位なので、エージェントは一人のユーザーだけに入れる。
+- コレクタは個人の Mac 1 台・主要 OS ユーザー 1 人を前提にする。二人目のユーザーが同じエージェントを動かすと、スクリーンタイムは別の `hub_os_account` になる。電源はマシン単位なので、エージェントは一人のユーザーだけに入れる。
 
 ## 13. 運用
 
@@ -449,7 +486,7 @@ supabase/functions/macos-ingest/
 supabase/functions/macos-materialize/
 config/apple_health_types.yml
 config/sources.yml                        # 既定値。enabled は false のまま始める
-config/person_map.yml                     # 任意の devices:
+config/person_map.yml                     # 任意の machines: / os_accounts:
 deploy/macos/launchd/
 packages/dbt/models/...                   # tag:macos
 ```

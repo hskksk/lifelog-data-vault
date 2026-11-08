@@ -2,15 +2,18 @@
 
 ## Hubs
 
-- `hub_person`
-- `hub_device`
-- `hub_observation_definition` — short codes (`steps`, `heart_rate`, `weight`, …) for generic observations. Apple Health uses the HK type string as the business key; see [macos-local-ingest.md](./macos-local-ingest.md)
+- `hub_person` — the human. Shared across sources
+- `hub_device` — OwnTracks topic only (`owntracks/me/iphone`). Not a hardware id
+- `hub_machine` — Mac hardware UUID. Power events. See [macos-local-ingest.md](./macos-local-ingest.md)
+- `hub_os_account` — `<hardware_uuid>:<uid>`. Screen Time. See [macos-local-ingest.md](./macos-local-ingest.md)
+- `hub_observation_definition` — short codes (`steps`, `heart_rate`, `weight`, …) for generic observations. Apple Health, when added, keeps its own key and does not reuse `hub_device`
 - `hub_location_h3`, `hub_location_event` — see [owntracks.md](./owntracks.md)
-- `hub_power_event`, `hub_application`, `hub_usage_interval`, `hub_health_record`, `hub_workout` — see [macos-local-ingest.md](./macos-local-ingest.md)
+- `hub_power_event`, `hub_application`, `hub_usage_interval` — see [macos-local-ingest.md](./macos-local-ingest.md)
 
 ## Links
 
-- `link_person_device`
+- `link_person_device` — person × OwnTracks topic
+- `link_person_machine`, `link_person_os_account`, `link_machine_os_account` — see [macos-local-ingest.md](./macos-local-ingest.md)
 - `link_person_observation` (optional)
 
 ## Satellites (examples)
