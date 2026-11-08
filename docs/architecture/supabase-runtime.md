@@ -164,7 +164,7 @@ Cron は `public.invoke_owntracks_materialize()` が `https://{supabase_project_
 
 ### 6.1 接続
 
-- **GitHub Actions** `workflow_dispatch` のみ（`owntracks-dbt.yml`；cron は未設定。materialize は DB 側 **15 分** Cron）
+- **GitHub Actions** `schedule` **毎時** + `workflow_dispatch`（`owntracks-dbt.yml`；materialize は DB 側 **15 分** Cron）
 - **接続:** session pooler + ロール **`dbt_runner`**。パスワードは **Vault `dbt_runner_password`** → deploy / `ops.sync_dbt_runner_password_from_vault()` がロールに反映。CI（dbt **1.12**）は [resolve-dbt-connection.ts](../../scripts/resolve-dbt-connection.ts) が deploy と同じ pooler 解決 + Vault 読み取りし、field-based `profiles.yml` を生成（[dbt-ci-setup.md](../operations/dbt-ci-setup.md)）
 - **`SUPABASE_DB_URL` GitHub secret は不要**
 
@@ -173,6 +173,8 @@ Cron は `public.invoke_owntracks_materialize()` が `https://{supabase_project_
 ```yaml
 # .github/workflows/owntracks-dbt.yml
 on:
+  schedule:
+    - cron: "0 * * * *"
   workflow_dispatch:
 jobs:
   dbt:
@@ -201,10 +203,10 @@ jobs:
 | 処理 | どこで動く | リポジトリ上の根拠 |
 |------|------------|-------------------|
 | **materialize**（Bronze → inbox） | **Supabase Postgres の pg_cron**（15 分） | `supabase/migrations/*materialize*cron*.sql` → ジョブ `owntracks-materialize` → `invoke_owntracks_materialize()` |
-| **dbt**（inbox → Vault / mart） | **GitHub Actions 手動のみ** | [`.github/workflows/owntracks-dbt.yml`](../../.github/workflows/owntracks-dbt.yml) は **`workflow_dispatch` のみ**（cron なし） |
+| **dbt**（inbox → Vault / mart） | **GitHub Actions 毎時** + 手動 | [`.github/workflows/owntracks-dbt.yml`](../../.github/workflows/owntracks-dbt.yml) は **`0 * * * *` UTC** と **`workflow_dispatch`** |
 | **deploy**（migrations / Edge） | push to `main` または手動 | [`.github/workflows/deploy.yml`](../../.github/workflows/deploy.yml) |
 
-**materialize 用の GitHub Actions workflow（schedule）は意図していない。** dbt の workflow に「materialize Cron は DB」と書いてあるのは、**dbt の cron を入れない理由**の説明であり、materialize が GHA 上にあるわけではない。Vault + pg_cron は `db push` で本番 DB に載る（`.github/workflows/` には現れない）。
+**materialize 用の GitHub Actions workflow（schedule）は意図していない。** materialize は pg_cron のみ。dbt は GHA で毎時。Vault + pg_cron は `db push` で本番 DB に載る（materialize 部分は `.github/workflows/` には現れない）。
 
 | 環境 | 内容 |
 |------|------|
@@ -298,6 +300,6 @@ Free tier 内で開始し、容量アラートで Supabase Dashboard を見る�
 
 1. **materialize の 1 実行あたり batch 上限**（デフォルト 20 でよいか）
 2. **`person_map` の配布**（Edge Secret JSON vs Storage `config/person_map.yml`）
-3. **dbt Cron**（未決 — 現状は手動 `workflow_dispatch` のみ）
+3. **dbt Cron** — **毎時 0 分 UTC**（`owntracks-dbt.yml`）
 
-デフォルト提案: batch 上限 **20**、person_map **Storage に sync**、dbt **手動**（将来毎時 :05 UTC 等を検討）。
+デフォルト提案: batch 上限 **20**、person_map **Storage に sync**。
