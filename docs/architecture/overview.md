@@ -25,7 +25,7 @@ Ingest personal lifelog data (health, PC activity, manual metrics), store immuta
 Sources → Edge ingest → Storage Bronze + ops.ingest_batch
 Cron → Edge materialize → staging inbox
 GitHub Actions → dbt → raw_vault → business_vault → mart
-Metabase (bi_reader, session pooler) → mart
+Metabase (bi_reader, session pooler) → mart, business_vault
 GitHub → CI (ingest typecheck, dbt parse)
 ```
 
@@ -55,7 +55,7 @@ bronze/<record_source>/dt=YYYY-MM-DD/batch=<uuid>/
 |--------|------|
 | staging | dbt staging models |
 | raw_vault | hub_*, link_*, sat_* |
-| business_vault | bv_* |
+| business_vault | bv_* (Metabase via `bi_reader`, [metabase.md](./metabase.md)) |
 | mart | mart_* (Metabase via `bi_reader`, [metabase.md](./metabase.md)) |
 | ops | ingest_batch, dbt_run_log |
 

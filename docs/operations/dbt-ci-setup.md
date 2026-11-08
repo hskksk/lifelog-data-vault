@@ -46,4 +46,4 @@ migration `ops.sync_dbt_runner_password_from_vault()` が Vault の値を `dbt_r
 
 `make supabase-reset` の seed が Vault `dbt_runner_password` = `local-dbt-runner` を入れ sync する。`profiles.yml` の `supabase_dbt_runner` ターゲットを使う。
 
-mart モデルの post-hook は `bi_reader` に `SELECT` を付ける（ロールが無い DB では no-op）。手順は [metabase-setup.md](./metabase-setup.md)。
+mart と business_vault の post-hook は `bi_reader` に `SELECT` を付ける（ロールが無い DB では no-op）。手順は [metabase-setup.md](./metabase-setup.md)。

@@ -61,7 +61,7 @@ async function main() {
   const headers = await authHeaders(baseUrl);
   await upsertRemoteDatabase(baseUrl, headers, conn);
   console.log(
-    `Metabase database "${REMOTE_MART_DATABASE_NAME}" uses ${conn.user} at ${conn.host}:${conn.port} (schema mart, SSL require).`,
+    `Metabase database "${REMOTE_MART_DATABASE_NAME}" uses ${conn.user} at ${conn.host}:${conn.port} (schemas mart, business_vault, SSL require).`,
   );
 }
 
