@@ -1,0 +1,59 @@
+# Shared remote dbt build (Supabase session pooler + Vault dbt_runner).
+# Called from owntracks-dbt, macos-dbt, and deploy (post-migration).
+name: dbt build (remote)
+
+on:
+  workflow_call:
+    inputs:
+      select:
+        description: "dbt build --select …"
+        required: true
+        type: string
+
+concurrency:
+  group: owntracks-dbt
+  cancel-in-progress: false
+
+jobs:
+  dbt:
+    runs-on: ubuntu-latest
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+      SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+      SUPABASE_DB_PUSH_URL: ${{ secrets.SUPABASE_DB_PUSH_URL }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - uses: hskksk/gh-actions/actions/setup-mise@v1
+
+      - run: pnpm install --frozen-lockfile
+
+      - uses: hskksk/gh-actions/actions/setup-supabase-cli@v1
+        with:
+          install: "false"
+
+      - name: Link Supabase project
+        run: supabase link --project-ref "${SUPABASE_PROJECT_REF}" --yes
+
+      - name: Resolve dbt connection and write profiles.yml
+        run: pnpm exec tsx scripts/resolve-dbt-connection.ts --write-profiles packages/dbt/profiles.yml
+
+      - name: Install dbt
+        run: pip install -r packages/dbt/requirements-ci.txt
+
+      - name: Use pip dbt on PATH (not mise / other dbt)
+        run: echo "${{ env.pythonLocation }}/bin" >> "$GITHUB_PATH"
+
+      - name: dbt deps
+        working-directory: packages/dbt
+        run: dbt deps --profiles-dir .
+
+      - name: dbt build
+        working-directory: packages/dbt
+        run: dbt build --select ${{ inputs.select }} --profiles-dir . --target ci
