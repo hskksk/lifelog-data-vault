@@ -1,6 +1,6 @@
 import type { CollectorIdentity } from "@lifelog/ingest-core";
 
-import { loadCollectorConfig } from "./config.js";
+import { defaultStateDir, loadCollectorConfig, writeConfigTemplate } from "./config.js";
 import { powerEnvelopes, powerEventsInWindow, readMachineIdentity, readPmsetLog } from "./power.js";
 import { postEnvelope } from "./post.js";
 import { readState, writeState } from "./state.js";
@@ -59,8 +59,15 @@ async function runSource(source: SourceName): Promise<number> {
 }
 
 const command = process.argv[2] ?? "run";
+if (command === "init-config") {
+  const stateDir = process.env.LIFELOG_STATE_DIR || defaultStateDir();
+  const ingestUrl = process.argv[3];
+  const written = writeConfigTemplate(stateDir, ingestUrl);
+  console.log(written.created ? `wrote ${written.path}` : `left existing ${written.path}`);
+  process.exit(0);
+}
 if (!["run", "power", "screentime"].includes(command)) {
-  console.error("usage: lifelog-macos-collect run|power|screentime");
+  console.error("usage: lifelog-macos-collect init-config [ingest-url] | run | power | screentime");
   process.exit(2);
 }
 
