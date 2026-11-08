@@ -2,7 +2,7 @@
 
 See GitHub issue #4 for the canonical design discussion snapshot.
 
-Source-specific designs: [owntracks.md](./owntracks.md) (location / H3).
+Source-specific designs: [owntracks.md](./owntracks.md) (location / H3), [macos-local-ingest.md](./macos-local-ingest.md) (Mac power, Screen Time, Health).
 
 **Production runtime (dbt 以外):** [supabase-runtime.md](./supabase-runtime.md) — Postgres, Edge ingest/materialize, Storage Bronze.
 

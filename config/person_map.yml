@@ -6,3 +6,11 @@ default_person_id: me
 # users:
 #   me: me
 #   partner: spouse
+
+# Optional association from a machine or OS account to person_id.
+# These are not hub_device keys. Unlisted ids use default_person_id.
+# See docs/architecture/macos-local-ingest.md.
+# machines:
+#   "<hardware-uuid>": me
+# os_accounts:
+#   "<hardware-uuid>:501": me

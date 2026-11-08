@@ -145,6 +145,15 @@ select vault.create_secret('sb_secret_...', 'supabase_secret_key', 'materialize 
 
 Cron は `public.invoke_owntracks_materialize()` が `https://{supabase_project_id}.supabase.co/functions/v1/owntracks-materialize` を **`apikey`** ヘッダ付きで `pg_net` 呼び出し。
 
+### 4.4 Mac ローカルソース（設計のみ）
+
+電源・スクリーンタイム・ヘルスケアは [macos-local-ingest.md](./macos-local-ingest.md)。Edge は `macos-ingest` と `macos-materialize` の 2 本で、Bronze と `ops.ingest_batch` は OwnTracks と同じである。違う点は次の二つ。
+
+- 抽出は Mac の launchd。認証は OwnTracks とは別の `MACOS_INGEST_BEARER_TOKEN`。
+- ヘルスケアの `export.zip` は Edge に載せない。Mac がレコード JSON に分解してから POST する。
+
+未実装。deploy の必須 Secret にはまだ含めない。
+
 ---
 
 ## 5. Secrets（Supabase Dashboard / CLI）

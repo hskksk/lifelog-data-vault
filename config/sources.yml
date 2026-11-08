@@ -10,6 +10,38 @@ sources:
     lookback_days: 7
   apple_health:
     enabled: false
+    # Mac Health.app export.zip, parsed on the Mac. See docs/architecture/macos-local-ingest.md
+    chunk_records: 500
+    # Empty list means all Record types except the hard skips in the design doc.
+    hk_types:
+      - HKQuantityTypeIdentifierStepCount
+      - HKQuantityTypeIdentifierHeartRate
+      - HKQuantityTypeIdentifierBodyMass
+      - HKCategoryTypeIdentifierSleepAnalysis
+    entities:
+      - record
+      - workout
+      - activity_summary
+    materialize_interval_minutes: 15
+  macos_power:
+    enabled: false
+    collect_interval_minutes: 60
+    overlap_minutes: 120
+    materialize_interval_minutes: 15
+    kinds:
+      - Sleep
+      - Wake
+      - DarkWake
+      - Start
+      - Shutdown
+      - Restart
+  macos_screentime:
+    enabled: false
+    collect_interval_minutes: 360
+    overlap_hours: 24
+    materialize_interval_minutes: 15
+    streams:
+      - /app/usage
   owntracks:
     enabled: false
     # Legacy Hono path (OCI/Tunnel). Supabase prod: see docs/operations/owntracks-ingest-setup.md

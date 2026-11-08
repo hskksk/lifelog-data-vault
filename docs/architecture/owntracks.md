@@ -19,10 +19,18 @@
 |------|------|
 | 公開経路 | **Supabase Edge Function**（本番）。自前ホスト時は [Cloudflare Tunnel](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/)（レガシー） |
 | 空間キー | **最初から H3**（resolution 9）を `hub_location_h3` のビジネスキー |
-| 端末キー | **`topic` 全文**を `hub_device` の BK（例: `owntracks/me/iphone`） |
+| 端末キー | **`topic` 全文**を `hub_device` の BK（例: `owntracks/me/iphone`）。ハードウェア UUID や OS アカウントは別 hub（[macos-local-ingest.md](./macos-local-ingest.md)） |
 | 人物キー | **`config/person_map.yml` の `person_id`**（個人は `me` 等 1 行で開始） |
 
 `tid` は HTTP モードで必須だが **Hub キーにしない**（表示・Sat 属性として保持。端末識別は `topic` が安定）。
+
+## 2.1 ハードウェア UUID は載らない
+
+OwnTracks の位置 JSON に hardware UUID は無い。iOS アプリから `IOPlatformUUID` は読めない（UDID はアプリに出さない）。Android の位置 JSON にもハードウェア UUID は無い。
+
+iOS の `_type=status` には `deviceIdentifierForVendor` がある。これは `identifierForVendor` で、同じベンダーのアプリが全部消えると変わる UUID である。位置メッセージには含まれず、サーバが `{"_type":"cmd","action":"status"}` を返したときに別メッセージで届く。`hub_machine` の BK には使わない。topic の属性として残すなら `sat_owntracks_device` の列であり、このラウンドでは取りに行かない。
+
+Mac の hardware UUID を位置と一緒に送れるのは、Mac 上の自前コレクタが OwnTracks 形式を出す場合だけである。公式アプリの設定では足せない。
 
 ## 3. OwnTracks アプリ前提
 
