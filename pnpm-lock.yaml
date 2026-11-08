@@ -15,6 +15,25 @@ importers:
         specifier: ^4.19.4
         version: 4.23.15
 
+  collectors/macos:
+    dependencies:
+      '@lifelog/ingest-core':
+        specifier: workspace:*
+        version: link:../../packages/ingest-core
+    devDependencies:
+      '@types/node':
+        specifier: ^22.13.0
+        version: 22.20.5
+      tsx:
+        specifier: ^4.19.4
+        version: 4.23.15
+      typescript:
+        specifier: ^5.8.0
+        version: 5.9.3
+      vitest:
+        specifier: ^3.0.0
+        version: 3.2.7(@types/node@22.20.5)(tsx@4.23.15)(yaml@2.9.1)
+
   packages/ingest:
     dependencies:
       '@aws-sdk/client-s3':

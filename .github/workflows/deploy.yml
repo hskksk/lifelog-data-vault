@@ -46,7 +46,11 @@ jobs:
           install: "false"
 
       - name: Create .env
-        run: echo "INGEST_BEARER_TOKEN=${{ secrets.INGEST_BEARER_TOKEN }}" > .env
+        run: |
+          echo "INGEST_BEARER_TOKEN=${{ secrets.INGEST_BEARER_TOKEN }}" > .env
+          if [ -n "${{ secrets.MACOS_INGEST_BEARER_TOKEN }}" ]; then
+            echo "MACOS_INGEST_BEARER_TOKEN=${{ secrets.MACOS_INGEST_BEARER_TOKEN }}" >> .env
+          fi
 
       - name: Deploy
         run: pnpm run deploy

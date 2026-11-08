@@ -25,6 +25,8 @@ jobs:
       - run: pnpm --filter @lifelog/ingest typecheck
       - run: pnpm --filter @lifelog/ingest test
       - run: pnpm --filter @lifelog/ingest build
+      - run: pnpm --filter @lifelog/macos-collector typecheck
+      - run: pnpm --filter @lifelog/macos-collector test
 
   dbt:
     runs-on: ubuntu-latest

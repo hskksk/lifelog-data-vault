@@ -430,3 +430,15 @@ enabled = true
 verify_jwt = false
 import_map = "./functions/owntracks-materialize/deno.json"
 entrypoint = "./functions/owntracks-materialize/index.ts"
+
+[functions.macos-ingest]
+enabled = true
+verify_jwt = false
+import_map = "./functions/macos-ingest/deno.json"
+entrypoint = "./functions/macos-ingest/index.ts"
+
+[functions.macos-materialize]
+enabled = true
+verify_jwt = false
+import_map = "./functions/macos-materialize/deno.json"
+entrypoint = "./functions/macos-materialize/index.ts"
