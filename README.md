@@ -137,7 +137,7 @@ security add-generic-password -s lifelog-macos-ingest -a bearer -w "$MACOS_INGES
 pnpm --filter @lifelog/macos-collector exec tsx src/cli.ts run
 ```
 
-`config/sources.yml` leaves `macos_power` and `macos_screentime` disabled until you install the launchd template in `deploy/macos/launchd/`. Screen Time needs Full Disk Access on the `tsx` binary. Set the Edge secret `MACOS_INGEST_BEARER_TOKEN` before the collector can get a 202. dbt: Actions → **macos-dbt**, or the hourly owntracks-dbt workflow which also builds `tag:macos`.
+Hourly collection is `deploy/macos/collect.sh`, started by the LaunchAgent template `deploy/macos/launchd/dev.lifelog.macos-collect.plist`. Replace `REPLACE_WITH_REPO` and `REPLACE_WITH_HOME` in the copy under `~/Library/LaunchAgents/`. Screen Time needs Full Disk Access on the `node` binary that script runs. Set the Edge secret `MACOS_INGEST_BEARER_TOKEN` before the collector can get a 202. dbt: Actions → **macos-dbt**, or the hourly owntracks-dbt workflow which also builds `tag:macos`.
 
 ### OwnTracks (location)
 

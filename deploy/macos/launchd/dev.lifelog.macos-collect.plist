@@ -1,25 +1,23 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <!--
-  Template. Replace the tsx binary and the cli path, then:
+  Replace REPLACE_WITH_REPO and REPLACE_WITH_HOME, then:
     cp deploy/macos/launchd/dev.lifelog.macos-collect.plist ~/Library/LaunchAgents/
-    launchctl load ~/Library/LaunchAgents/dev.lifelog.macos-collect.plist
+    launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/dev.lifelog.macos-collect.plist
 
-  ingest_url lives in ~/Library/Application Support/lifelog/config.json.
-  The bearer token stays in the keychain (service lifelog-macos-ingest), not in this plist.
-  Grant Full Disk Access to the tsx/node binary before Screen Time collection can read knowledgeC.db.
+  The agent runs deploy/macos/collect.sh. ingest_url stays in
+  ~/Library/Application Support/lifelog/config.json.
+  The bearer token stays in the keychain (service lifelog-macos-ingest).
+  Grant Full Disk Access to the node binary collect.sh resolves, not to the shell script.
 -->
 <plist version="1.0">
 <dict>
   <key>Label</key>
   <string>dev.lifelog.macos-collect</string>
-  <key>WorkingDirectory</key>
-  <string>REPLACE_WITH_REPO</string>
   <key>ProgramArguments</key>
   <array>
-    <string>REPLACE_WITH_TSX</string>
-    <string>REPLACE_WITH_REPO/collectors/macos/src/cli.ts</string>
-    <string>run</string>
+    <string>/bin/sh</string>
+    <string>REPLACE_WITH_REPO/deploy/macos/collect.sh</string>
   </array>
   <key>RunAtLoad</key>
   <true/>
