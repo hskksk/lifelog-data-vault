@@ -440,7 +440,7 @@ link_os_account_usage_interval
 link_usage_interval_application
 
 sat_macos_power_event            kind, message, raw_line, occurred_at
-sat_macos_screentime_interval    ended_at, duration, source_device_ref を hashdiff に含める
+sat_macos_screentime_interval    started_at, stream は区間キーの列。ended_at, duration, source_device_ref を hashdiff に含める
 sat_machine_details              computer_name, model, os_version。hashdiff が変わったときだけ新行
 ```
 
@@ -452,7 +452,7 @@ sat は insert-only。同一 BK で hashdiff が同じ行は足さない。必�
 
 ## 11. Business Vault / Mart（Phase 4）
 
-電源区間とアプリ区間の定義、および person × 分のマートは [person-activity.md](./person-activity.md)。`DarkWake` は `on` にしない。スクリーンタイムの `started_at` は sat に無いので、business vault の前に sat へ足す。
+電源区間とアプリ区間の定義、および person × 分のマートは [person-activity.md](./person-activity.md)。`DarkWake` は `on` にしない。スクリーンタイムの `started_at` と `stream` は sat の列で、hashdiff には入れない。
 
 | オブジェクト | 内容 |
 |--------------|------|

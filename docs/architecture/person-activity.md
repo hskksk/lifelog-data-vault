@@ -158,15 +158,13 @@ trigger が欠ける古い行は `hold_start` に落とす。`t` と分からな
 
 `source_device_ref` が空の区間だけを `usage_device_scope = this_mac` とする。空でない区間は `other_or_unknown` として business vault には残し、このマートのアプリ配列には入れない。知識 DB に他デバイスが混ざることがある、という [macos-local-ingest.md](./macos-local-ingest.md) の前提のままである。
 
-### 6.1 raw vault に無い開始時刻
+### 6.1 開始時刻は sat の列
 
-`usage_interval_id` は `hardware_uuid`, uid, stream, `bundle_id`, `started_at`, `source_device_ref` の md5 である。`started_at` と `stream` は sat に載っていない。ハッシュから戻せない。
+`usage_interval_id` は `hardware_uuid`, uid, stream, `bundle_id`, `started_at`, `source_device_ref` の md5 である。`started_at` と `stream` は `sat_macos_screentime_interval` の列として持つ。ハッシュからは戻せない。どちらも区間の寿命中に変わらないので、hashdiff には入れない。終了時刻が伸びて別の sat 行ができても、同じ開始時刻が各行に載る。
 
 `bundle_id` は `hub_application.application_bk` から戻せる。`ended_at` と `source_device_ref` は sat にある。
 
-Business vault は staging を読まない。先に `sat_macos_screentime_interval` へ `started_at` と `stream` を足す。どちらもビジネスキーの入力で、区間の寿命中に変わらない。hashdiff には入れない。終了時刻の更新で別の sat 行ができるときも、同じ開始時刻が各行に載る。
-
-既に `vault_loaded_at` が入った inbox 行は、staging モデルのフィルタで sat の増分に戻ってこない。sat の full-refresh は、未ロード行だけを見て既存行を消す。バックフィルは一度だけの `UPDATE` とする。inbox を `usage_interval_id` で結合し、sat の `started_at` と `stream` が null の行を埋める。実測の訂正であり、以降の属性変更を `UPDATE` してよい、という先例にはしない。
+新しい行は staging の列を sat に書く。この列を足すより前にロードした行は、staging が `vault_loaded_at is null` の inbox だけを読むため、通常の増分では戻ってこない。その行の空欄は、同じ dbt 実行の post-hook が inbox から埋める。inbox の値が区間 ID の中で一致するときだけ書き、空欄が無くなれば更新は 0 行になる。
 
 ## 7. マート
 
@@ -217,7 +215,7 @@ topic と hardware UUID を結ぶ link は、このマートのために作ら�
 
 ## 9. 実装の順
 
-1. `sat_macos_screentime_interval` に `started_at` と `stream` を足し、ロード済み行を一度だけ埋める。
+1. `sat_macos_screentime_interval` の `started_at` と `stream`。モデルに列があり、空欄は post-hook が inbox から埋める。
 2. `bv_location_fix` と `bv_location_segment`。`position_model` のテストを先に固定する。
 3. `bv_power_interval`。
 4. `bv_app_usage_interval`。
