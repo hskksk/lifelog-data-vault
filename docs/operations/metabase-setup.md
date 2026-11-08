@@ -29,10 +29,10 @@ make metabase-up        # http://127.0.0.1:3000
 | Database name | `postgres` |
 | Username | `bi_reader` |
 | Password | `local-bi-reader` |
-| Schemas | Only these… `mart,business_vault` |
+| Schemas | Only these… `mart,business_vault,raw_vault` |
 | Use a secure connection (SSL) | オフ |
 
-追加設定で接続プールがあれば **3**。Show でスキーマ `mart` と `business_vault` が見えれば成功。`business_vault` にモデルが無い間は、そのスキーマ名は出ない。`raw_vault` が見える、または `postgres` スーパーユーザーで繋いでいるときは、その接続を消して `bi_reader` で作り直す。
+追加設定で接続プールがあれば **3**。Show でスキーマ `mart`、`business_vault`、`raw_vault` が見えれば成功。`business_vault` にモデルが無い間は、そのスキーマ名は出ない。`staging` や `ops` が見える、または `postgres` スーパーユーザーで繋いでいるときは、その接続を消して `bi_reader` で作り直す。
 
 ### ダッシュボード
 
@@ -93,7 +93,7 @@ make metabase-connect-remote
 
 `METABASE_API_KEY` があるとその値だけを送る。Admin → Settings → Authentication → API keys で Administrators グループに作り、`mb_` で始まる値を入れる。画面に一度だけ出る。キーが無いときはその行を空にして、セットアップ画面で作った管理者のメールとパスワードを `METABASE_EMAIL` / `METABASE_PASSWORD` に書く。401 `Unauthenticated` は Metabase のログイン拒否で、倉庫のパスワードとは別。
 
-このコマンドは dbt と同じ Session pooler URL を解決し、Vault の `bi_reader_password` で `bi_reader.<project-ref>` としてログインできることを確認してから、Metabase に `lifelog mart (remote)` を作る（既にあれば更新する）。同期スキーマは `mart` と `business_vault`。SSL は require。ポートは 5432。
+このコマンドは dbt と同じ Session pooler URL を解決し、Vault の `bi_reader_password` で `bi_reader.<project-ref>` としてログインできることを確認してから、Metabase に `lifelog mart (remote)` を作る（既にあれば更新する）。同期スキーマは `mart`、`business_vault`、`raw_vault`。SSL は require。ポートは 5432。
 
 画面が「このデータベースにはテーブルがありません」のときは、`bi_reader` が `SELECT` できる relation が同期結果に無い。上記の owner grant を deploy したあと、Admin → Databases → そのデータベースの Sync database schema now を押す。`make metabase-connect-remote` をもう一度実行しても同じ同期が走る。
 
@@ -107,7 +107,7 @@ make metabase-connect-remote
 | Database name | `postgres` |
 | Username | `bi_reader.<project-ref>` |
 | Password | Vault に入れた値 |
-| Schemas | `mart,business_vault` |
+| Schemas | `mart,business_vault,raw_vault` |
 | SSL | require |
 | SSL mode | require |
 | 接続プール | 3 |

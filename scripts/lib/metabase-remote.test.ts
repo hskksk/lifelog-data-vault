@@ -80,7 +80,7 @@ function assertConnection(details: Record<string, unknown>) {
   assert.equal(details.password, conn.password);
   assert.equal(details.ssl, true);
   assert.equal(details["ssl-mode"], "require");
-  assert.equal(details["schema-filters-patterns"], "mart,business_vault");
+  assert.equal(details["schema-filters-patterns"], "mart,business_vault,raw_vault");
 }
 
 function assertPayload(body: string) {

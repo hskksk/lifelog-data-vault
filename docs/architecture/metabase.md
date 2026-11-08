@@ -8,7 +8,7 @@
 
 ## 1. 目的
 
-`mart` と `business_vault` をダッシュボードで見る。最初の対象は `mart.mart_location_trail`（`tst` / `lat` / `lon`）。位置情報なので、Data API には出さず、Metabase のログインの向こうに置く。`raw_vault` は Metabase に出さない。
+`mart`、`business_vault`、`raw_vault` をダッシュボードで見る。最初の対象は `mart.mart_location_trail`（`tst` / `lat` / `lon`）。`raw_vault` は business vault のモデルを検討するために同じログインの向こうで読む。位置情報なので Data API には出さない。`staging` と `ops` は Metabase に出さない。
 
 ## 2. 配置
 
@@ -23,12 +23,13 @@ flowchart LR
   MB -->|bi_reader / session pooler| PG
   PG --- MART[schema mart]
   PG --- BV[schema business_vault]
+  PG --- RV[schema raw_vault]
 ```
 
 | もの | 置き場 |
 |------|--------|
 | 質問・ダッシュボード（Metabase アプリ DB） | ローカルは Compose の H2 ボリューム。常時起動するときは **Vault とは別の Postgres** |
-| 集計対象 | Supabase Postgres のスキーマ `mart` と `business_vault` |
+| 集計対象 | Supabase Postgres のスキーマ `mart`、`business_vault`、`raw_vault` |
 | 起動（手元） | [`deploy/docker/docker-compose.metabase.yml`](../../deploy/docker/docker-compose.metabase.yml)（`make metabase-up`） |
 | イメージ | `metabase/metabase:v0.64.4`（64 LTS。サポート期限 2027-12-01。`latest` は使わない） |
 
@@ -43,15 +44,15 @@ flowchart LR
 | 項目 | 内容 |
 |------|------|
 | 属性 | `LOGIN`、`NOBYPASSRLS`、`NOINHERIT`、`CONNECTION LIMIT 10`。`NOSUPERUSER` は `CREATE ROLE` の既定（hosted の `postgres` は `NOSUPERUSER` を書けない） |
-| スキーマ | `mart` と `business_vault` の `USAGE`。`staging` / `raw_vault` / `ops` は revoke |
-| テーブル / view | その 2 スキーマの `SELECT` のみ |
-| `search_path` | `mart, business_vault` |
+| スキーマ | `mart`、`business_vault`、`raw_vault` の `USAGE`。`staging` / `ops` は revoke |
+| テーブル / view | その 3 スキーマの `SELECT` のみ |
+| `search_path` | `mart, business_vault, raw_vault` |
 | タイムアウト | `statement_timeout` 60s、`lock_timeout` 5s、`idle_in_transaction_session_timeout` 60s（セッションから変更はできる。Metabase の通常クエリはロール既定のまま） |
 | Data API | `anon` / `authenticated` / `authenticator` にメンバーシップを付けない。`config.toml` の `[api] schemas` にも `mart` を入れない |
 
-`mart.mart_location_trail` は `raw_vault` を参照する view。Postgres の既定は `security_invoker = false` で、中身は **view 所有者**の権限で実行される。dbt の post-hook（[`grant_mart_to_bi_reader`](../../packages/dbt/macros/grant_mart_to_bi_reader.sql)）が view に `security_invoker = false` を明示し、`bi_reader` に `SELECT` を付ける。本番の dbt は `dbt_runner` で走るので、所有者は `dbt_runner`。`bi_reader` の SQL から `raw_vault` を直接は読めない。
+`mart.mart_location_trail` は `raw_vault` を参照する view。Postgres の既定は `security_invoker = false` で、中身は **view 所有者**の権限で実行される。dbt の post-hook（[`grant_mart_to_bi_reader`](../../packages/dbt/macros/grant_mart_to_bi_reader.sql)）が view に `security_invoker = false` を明示し、`bi_reader` に `SELECT` を付ける。本番の dbt は `dbt_runner` で走るので、所有者は `dbt_runner`。`bi_reader` は同じ `SELECT` で `raw_vault` の hub / link / satellite も直接読む。`sat_owntracks_location` には緯度経度が入る。
 
-`dbt_runner` が後から作るオブジェクトへの default privileges は、そのロールになれるときだけ張る（`mart` は `20261107233000_bi_reader_grant_as_owner.sql`、`business_vault` は `20261108113000_bi_reader_business_vault.sql`）。ホストされた Supabase の `postgres` は `dbt_runner` 所有の view に `GRANT` できない。`postgres` が作るオブジェクトには default privileges で `SELECT` を付ける。post-hook は、ロールが既にある状態の dbt 実行でも同じ `GRANT` をする。`business_vault` にモデルが無い間、Metabase のスキーマ一覧にはその名前は出ない。
+`dbt_runner` が後から作るオブジェクトへの default privileges は、そのロールになれるときだけ張る（`mart` は `20261107233000_bi_reader_grant_as_owner.sql`、`business_vault` は `20261108113000_bi_reader_business_vault.sql`、`raw_vault` は `20261108120000_bi_reader_raw_vault.sql`）。ホストされた Supabase の `postgres` は `dbt_runner` 所有の relation に `GRANT` できない。`postgres` が作るオブジェクトには default privileges で `SELECT` を付ける。post-hook は、ロールが既にある状態の dbt 実行でも同じ `GRANT` をする。`business_vault` にモデルが無い間、Metabase のスキーマ一覧にはその名前は出ない。`raw_vault` のテーブルに RLS は無いので、`SELECT` で行が返る。
 
 `bi_reader` ロールが無い DB（レガシー Compose Postgres）では post-hook は何もしない。
 
@@ -80,7 +81,7 @@ Metabase は prepared statement を使う。入り口は **Session pooler のポ
 | User | `bi_reader` | `bi_reader.<project-ref>` |
 | Password | `local-bi-reader` | Vault の値 |
 | SSL | オフ | require |
-| スキーマ | `mart` と `business_vault` を同期 | 同じ |
+| スキーマ | `mart`、`business_vault`、`raw_vault` を同期 | 同じ |
 | 接続プール | 3 | 3（ロール上限は 10。Compose は `MB_JDBC_DATA_WAREHOUSE_MAX_CONNECTION_POOL_SIZE=3`） |
 
 手元の Metabase に本番を足すコマンドは `make metabase-connect-remote`。接続先は dbt と同じ Session pooler で、ユーザーは `bi_reader.<project-ref>`。コンテナから届けるホスト名も、その pooler の公開名。手順は [metabase-setup.md](../operations/metabase-setup.md) の本番節。
@@ -107,10 +108,11 @@ SQL は [セットアップ手順](../operations/metabase-setup.md) に書く。
 | `supabase/migrations/20261107143000_bi_reader_role.sql` | ロール、GRANT、sync 関数 |
 | `supabase/migrations/20261107233000_bi_reader_grant_as_owner.sql` | `dbt_runner` 所有の mart view に `SELECT` を付け直す |
 | `supabase/migrations/20261108113000_bi_reader_business_vault.sql` | `business_vault` の `SELECT` と default privileges |
+| `supabase/migrations/20261108120000_bi_reader_raw_vault.sql` | `raw_vault` の `SELECT` と default privileges |
 | `supabase/seed.sql` | ローカルパスワード |
 | `scripts/deploy.ts` | 本番 Vault upsert（任意）と sync |
-| `packages/dbt/macros/grant_mart_to_bi_reader.sql` | mart と business_vault の `SELECT` |
-| `packages/dbt/dbt_project.yml` | marts と business_vault の post-hook |
+| `packages/dbt/macros/grant_mart_to_bi_reader.sql` | mart、business_vault、raw_vault の `SELECT` |
+| `packages/dbt/dbt_project.yml` | marts、business_vault、raw_vault の post-hook |
 | `deploy/docker/docker-compose.metabase.yml` | ローカル Metabase（ヒープ 2GB。起動前に残った Liquibase ロックを外す） |
-| `scripts/metabase-add-remote.ts` | 本番の `mart` と `business_vault` を Metabase に登録 |
+| `scripts/metabase-add-remote.ts` | 本番の `mart`、`business_vault`、`raw_vault` を Metabase に登録 |
 | `Makefile` | `metabase-up` / `metabase-down` / `metabase-logs` / `metabase-connect-remote` |

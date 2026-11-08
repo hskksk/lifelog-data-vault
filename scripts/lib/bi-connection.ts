@@ -21,10 +21,10 @@ export function biReaderConnectionFromPostgresPooler(
   };
 }
 
-/** Schemas Metabase syncs. raw_vault stays off this list. */
-export const METABASE_SCHEMA_FILTER = "mart,business_vault";
+/** Schemas Metabase syncs. staging and ops stay off this list. */
+export const METABASE_SCHEMA_FILTER = "mart,business_vault,raw_vault";
 
-/** Body for POST/PUT /api/database. Schema sync is mart and business_vault. */
+/** Body for POST/PUT /api/database. Schema sync is mart, business_vault, and raw_vault. */
 export function metabaseRemoteDatabasePayload(conn: DbtPostgresConnection) {
   return {
     name: REMOTE_MART_DATABASE_NAME,
