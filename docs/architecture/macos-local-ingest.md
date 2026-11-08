@@ -409,7 +409,9 @@ landing は Raw Vault の外、既存と同じく staging inbox である。
 link_device_machine       OwnTracks topic × hub_machine
 ```
 
-iPhone の topic と、スクリーンタイムの `source_device_ref` は、両方の実体が分かるまで結ばない。
+この link を OwnTracks アプリからの受信で埋めることはできない。位置 JSON に hardware UUID が無く、iOS からは `IOPlatformUUID` を読めない。`_type=status` の `deviceIdentifierForVendor` は別種の ID なので `hub_machine` に入れない。詳細は [owntracks.md](./owntracks.md) の「ハードウェア UUID は載らない」。
+
+iPhone の topic と、スクリーンタイムの `source_device_ref` は、両方の実体が分かるまで結ばない。topic と Mac の関係は、いまは `hub_person` を共有していることだけである。
 
 ### 10.3 このラウンドの Raw Vault
 

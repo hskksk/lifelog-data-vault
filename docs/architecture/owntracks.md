@@ -24,6 +24,14 @@
 
 `tid` は HTTP モードで必須だが **Hub キーにしない**（表示・Sat 属性として保持。端末識別は `topic` が安定）。
 
+## 2.1 ハードウェア UUID は載らない
+
+OwnTracks の位置 JSON に hardware UUID は無い。iOS アプリから `IOPlatformUUID` は読めない（UDID はアプリに出さない）。Android の位置 JSON にもハードウェア UUID は無い。
+
+iOS の `_type=status` には `deviceIdentifierForVendor` がある。これは `identifierForVendor` で、同じベンダーのアプリが全部消えると変わる UUID である。位置メッセージには含まれず、サーバが `{"_type":"cmd","action":"status"}` を返したときに別メッセージで届く。`hub_machine` の BK には使わない。topic の属性として残すなら `sat_owntracks_device` の列であり、このラウンドでは取りに行かない。
+
+Mac の hardware UUID を位置と一緒に送れるのは、Mac 上の自前コレクタが OwnTracks 形式を出す場合だけである。公式アプリの設定では足せない。
+
 ## 3. OwnTracks アプリ前提
 
 - [HTTP モード](https://owntracks.org/booklet/tech/http/): MQTT と同一 JSON を POST
