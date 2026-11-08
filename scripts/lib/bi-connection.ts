@@ -21,7 +21,10 @@ export function biReaderConnectionFromPostgresPooler(
   };
 }
 
-/** Body for POST/PUT /api/database. Schema sync is limited to mart. */
+/** Schemas Metabase syncs. raw_vault stays off this list. */
+export const METABASE_SCHEMA_FILTER = "mart,business_vault";
+
+/** Body for POST/PUT /api/database. Schema sync is mart and business_vault. */
 export function metabaseRemoteDatabasePayload(conn: DbtPostgresConnection) {
   return {
     name: REMOTE_MART_DATABASE_NAME,
@@ -37,7 +40,7 @@ export function metabaseRemoteDatabasePayload(conn: DbtPostgresConnection) {
       ssl: true,
       "ssl-mode": "require",
       "schema-filters-type": "inclusion",
-      "schema-filters-patterns": "mart",
+      "schema-filters-patterns": METABASE_SCHEMA_FILTER,
       "tunnel-enabled": false,
     },
   };

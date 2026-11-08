@@ -31,7 +31,7 @@ assert.equal(payload.details.password, "p@ss/word+");
 assert.equal(payload.details.ssl, true);
 assert.equal(payload.details["ssl-mode"], "require");
 assert.equal(payload.details["schema-filters-type"], "inclusion");
-assert.equal(payload.details["schema-filters-patterns"], "mart");
+assert.equal(payload.details["schema-filters-patterns"], "mart,business_vault");
 assert.equal(payload.details["tunnel-enabled"], false);
 
 console.log("bi-connection.test.ts ok");

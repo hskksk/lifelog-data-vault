@@ -19,6 +19,9 @@ models:
       +schema: raw_vault
     business_vault:
       +schema: business_vault
+      # bi_reader SELECT. No-op if the role is absent. See docs/architecture/metabase.md.
+      +post_hook:
+        - "{{ grant_mart_to_bi_reader() }}"
     marts:
       +schema: mart
       # bi_reader SELECT. No-op if the role is absent. See docs/architecture/metabase.md.
