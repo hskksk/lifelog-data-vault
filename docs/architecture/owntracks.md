@@ -129,11 +129,15 @@ sat_owntracks_location          属性 + hashdiff（insert-only）
 
 ## 8. Business Vault / Mart（最小）
 
+ある時刻の推定位置の定義は、[person-activity.md](./person-activity.md) にある。補間するのは、move mode の短い位置区間だけで、その位置区間が `position_model = linear` になる。有意な移動のあいだは、等速補間しない。補間点は `mart_location_trail` に足さない。
+
 | オブジェクト | 内容 |
 |--------------|------|
-| `bv_location_fix` | owntracks の fix 時系列 |
-| `mart_location_trail` | BI: tst, lat, lon, h3, trigger。Metabase はこの view を `bi_reader` で読む（[metabase.md](./metabase.md)） |
-| `mart_location_daily` | 日 × device: fix 数、H3 セル集合、粗い移動距離 |
+| `bv_location_fix` | 採用する fix。同じイベントに sat 行が複数あるときは、新しい hashdiff の行を採用して 1 行にする |
+| `bv_location_segment` | 隣り合う二つの fix と、`position_model` |
+| `mart_location_trail` | 実測だけ。tst, lat, lon, h3, trigger。Metabase はこの view を `bi_reader` で読む（[metabase.md](./metabase.md)） |
+| `mart_location_daily` | 日 × device: fix 数、H3 セル集合、粗い移動距離。距離は `bv_location_segment` の `distance_m` から取る |
+| `mart_person_activity_minute` | 分ごとの推定位置。電源・アプリと並べる。定義は person-activity.md |
 
 ## 9. セキュリティ
 

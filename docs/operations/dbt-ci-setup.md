@@ -42,7 +42,7 @@ migration `ops.sync_dbt_runner_password_from_vault()` が Vault の値を `dbt_r
 | **定期** | [`owntracks-dbt.yml`](../../.github/workflows/owntracks-dbt.yml) が毎時 0 分（UTC） |
 | **Deploy 連鎖** | [`deploy.yml`](../../.github/workflows/deploy.yml) 成功後、`supabase/migrations/` に **dbt 要否がある変更** が含まれる push だけ `dbt-after-deploy`（`+tag:owntracks +tag:macos`） |
 | **手動・全体** | Actions → **owntracks-dbt** |
-| **手動・Mac のみ** | Actions → **macos-dbt**（`+tag:macos`。速い／OwnTracks を触らない） |
+| **手動・Mac のみ** | Actions → **macos-dbt**（`+tag:macos +tag:person_activity`。速い／OwnTracks ingest 抜きで分 mart まで） |
 
 Deploy 連鎖で **dbt をスキップ**する migration（ファイル名パターン）: `dbt_runner_password` / `dbt_runner_grants_ensure` / `sync_*_password` / `dbt_runner_database_create`。Edge Functions や ingest-core だけの deploy は migration diff が空なのでスキップ。**workflow_dispatch** の Deploy は常に dbt を試行。
 
