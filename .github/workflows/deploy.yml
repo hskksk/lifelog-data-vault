@@ -19,6 +19,51 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  # Decide whether deploy needs a follow-up dbt build (schema / pipeline DDL vs Edge-only).
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      run_dbt: ${{ steps.decide.outputs.run_dbt }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - id: decide
+        env:
+          BEFORE: ${{ github.event.before }}
+          SHA: ${{ github.sha }}
+          EVENT: ${{ github.event_name }}
+        run: |
+          set -euo pipefail
+          # Manual deploy: refresh vault objects after db push (no-op build is acceptable).
+          if [ "$EVENT" = "workflow_dispatch" ]; then
+            echo "run_dbt=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          mapfile -t migration_files < <(git diff --name-only "${BEFORE}" "${SHA}" -- supabase/migrations/ 2>/dev/null || true)
+          if [ "${#migration_files[@]}" -eq 0 ]; then
+            echo "run_dbt=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          # Ops-only migrations (password sync, grant ensure). bi_reader * migrations fix grants in SQL.
+          skip_re='(dbt_runner_password|dbt_runner_grants_ensure|sync_dbt_runner_password|sync_bi_reader_password|dbt_runner_database_create)'
+          need=false
+          for f in "${migration_files[@]}"; do
+            base="$(basename "$f")"
+            if ! echo "$base" | grep -qE "$skip_re"; then
+              need=true
+              break
+            fi
+          done
+          if [ "$need" = true ]; then
+            echo "run_dbt=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "run_dbt=false" >> "$GITHUB_OUTPUT"
+          fi
+
   deploy:
     runs-on: ubuntu-latest
     env:
@@ -54,3 +99,11 @@ jobs:
 
       - name: Deploy
         run: pnpm run deploy
+
+  dbt-after-deploy:
+    needs: [changes, deploy]
+    if: needs.deploy.result == 'success' && needs.changes.outputs.run_dbt == 'true'
+    uses: ./.github/workflows/dbt-build-remote.yml
+    secrets: inherit
+    with:
+      select: "+tag:owntracks +tag:macos"

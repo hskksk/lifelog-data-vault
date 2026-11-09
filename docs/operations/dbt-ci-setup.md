@@ -37,8 +37,16 @@ migration `ops.sync_dbt_runner_password_from_vault()` が Vault の値を `dbt_r
 
 ## 4. 実行
 
-- **定期:** 毎時 0 分（UTC）に自動実行
-- **手動:** Actions → **owntracks-dbt** → **Run workflow**
+| 経路 | 内容 |
+|------|------|
+| **定期** | [`owntracks-dbt.yml`](../../.github/workflows/owntracks-dbt.yml) が毎時 0 分（UTC） |
+| **Deploy 連鎖** | [`deploy.yml`](../../.github/workflows/deploy.yml) 成功後、`supabase/migrations/` に **dbt 要否がある変更** が含まれる push だけ `dbt-after-deploy`（`+tag:owntracks +tag:macos`） |
+| **手動・全体** | Actions → **owntracks-dbt** |
+| **手動・Mac のみ** | Actions → **macos-dbt**（`+tag:macos +tag:person_activity`。速い／OwnTracks ingest 抜きで分 mart まで） |
+
+Deploy 連鎖で **dbt をスキップ**する migration（ファイル名パターン）: `dbt_runner_password` / `dbt_runner_grants_ensure` / `sync_*_password` / `dbt_runner_database_create`。Edge Functions や ingest-core だけの deploy は migration diff が空なのでスキップ。**workflow_dispatch** の Deploy は常に dbt を試行。
+
+実体は [`dbt-build-remote.yml`](../../.github/workflows/dbt-build-remote.yml)（`workflow_call`）。本番 dbt は concurrency `owntracks-dbt` で直列化。
 
 **`stg_owntracks__location` が空:** ビューは `where vault_loaded_at is null` のみ（Vault 投入済み行は inbox に残るが stg には出ない）。未処理行があるのに stg が空なら **RLS** — migration `20261104100000_dbt_runner_staging_inbox_rls.sql` を `db push` してから dbt を再実行。データ本体は `raw_vault.*` / `mart.*` を見る。
 
