@@ -51,6 +51,8 @@ Unified Log（`Previous shutdown cause`、`Wake reason`、`=== system boot:`）�
 ~/Library/Application Support/Knowledge/knowledgeC.db
 ```
 
+ER 図・テーブル定義・ストリーム一覧の調査メモ: [knowledgeC-db.md](../reference/knowledgeC-db.md)。
+
 `ZOBJECT.ZSTREAMNAME = '/app/usage'` が、最近の macOS でアプリ利用区間に相当する。時刻は Core Data（2001-01-01 起算秒）。Unix にするには `+ 978307200`。`ZOBJECT` はおおよそ数週間でローリングする、という報告がある。**取りこぼし防止に、間隔は 6 時間、重なり窓は 24 時間**とする。
 
 この DB には Safari 履歴や intents も入る。Bronze に載せるのは allowlist したストリームの射影だけである。`SELECT *` や DB ファイルそのものは送らない。
