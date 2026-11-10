@@ -180,7 +180,7 @@ trigger が欠ける古い行は、`hold_start` にする。`t` と確認でき�
 
 ## 6. アプリ
 
-`bv_app_usage_interval` は、`usage_interval_hk` ごとに 1 行である。終了時刻が伸びて sat に行が増えたときは、`load_dts` が新しい行を採用する。`load_dts` が同じなら、`ended_at` が遅い行を採用する。
+`bv_app_usage_interval` は、`usage_interval_hk` と `person_id` の組ごとに 1 行である。同じ区間でも、OS アカウントに結ばれた人が複数いればその人数ぶんの行になる。終了時刻が伸びて sat に行が増えたときは、`load_dts` が新しい行を採用する。`load_dts` が同じなら、`ended_at` が遅い行を採用する。
 
 区間は `[started_at, ended_at)` とする。区間どうしの重なりは、そのまま残す。同時に複数の bundle を使っていることがある。
 

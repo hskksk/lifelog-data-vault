@@ -47,10 +47,12 @@ models:
       - name: started_at
         tests: [not_null]
   - name: bv_app_usage_interval
-    description: Current Screen Time interval, one row per usage_interval_hk.
+    description: Current Screen Time interval, one row per usage_interval_hk and person_id.
     columns:
       - name: usage_interval_hk
-        tests: [not_null, unique]
+        tests: [not_null]
+      - name: person_id
+        tests: [not_null]
       - name: bundle_id
         tests: [not_null]
       - name: started_at
