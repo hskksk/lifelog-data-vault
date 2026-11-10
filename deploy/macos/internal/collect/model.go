@@ -44,6 +44,7 @@ type Identity struct {
 	Model        string `json:"model"`
 	OSVersion    string `json:"os_version"`
 	Timezone     string `json:"timezone"`
+	PersonID     string `json:"person_id"`
 }
 
 type PowerEvent struct {
@@ -92,6 +93,7 @@ type State struct {
 
 type configFile struct {
 	IngestURL string `json:"ingest_url"`
+	PersonID  string `json:"person_id,omitempty"`
 }
 
 func canonicalOffsetTimestamp(value string) string {
@@ -437,10 +439,14 @@ func writeConfigTemplate(dir, ingestURL string) (string, bool, error) {
 	return path, true, nil
 }
 
-func saveIngestURL(dir, ingestURL string) error {
+func saveConfig(dir, ingestURL, personID string) error {
 	ingestURL = strings.TrimSpace(ingestURL)
 	if ingestURL == "" {
-		return fmt.Errorf("ingest_url is required")
+		return fmt.Errorf("送信先 URL を入力してください")
+	}
+	personID, err := normalizePersonID(personID)
+	if err != nil {
+		return err
 	}
 	if err := os.MkdirAll(dir, 0o700); err != nil {
 		return err
@@ -448,42 +454,62 @@ func saveIngestURL(dir, ingestURL string) error {
 	if err := os.Chmod(dir, 0o700); err != nil {
 		return err
 	}
-	body, err := marshalIndent(configFile{IngestURL: ingestURL})
+	body, err := marshalIndent(configFile{IngestURL: ingestURL, PersonID: personID})
 	if err != nil {
 		return err
 	}
 	return os.WriteFile(filepath.Join(dir, "config.json"), append(body, '\n'), 0o600)
 }
 
-func loadConfig() (url, token, dir string, err error) {
+func normalizePersonID(value string) (string, error) {
+	id := strings.TrimSpace(value)
+	if id == "" {
+		return "", fmt.Errorf("person_id を設定してください")
+	}
+	if len([]rune(id)) > 64 || strings.ContainsAny(id, " \t\r\n/") {
+		return "", fmt.Errorf("person_id は空白と / を含まない 64 文字以内にしてください")
+	}
+	return id, nil
+}
+
+func loadConfig() (url, token, personID, dir string, err error) {
 	dir = stateDirFromEnv()
+	configPath := filepath.Join(dir, "config.json")
 	url = os.Getenv("MACOS_INGEST_URL")
 	if url == "" {
-		url = readIngestURL(filepath.Join(dir, "config.json"))
+		url = readConfig(configPath).IngestURL
 	}
 	if url == "" {
-		return "", "", dir, fmt.Errorf("Set MACOS_INGEST_URL, or write ingest_url with: lifelog-macos-collect init-config")
+		return "", "", "", dir, fmt.Errorf("Set MACOS_INGEST_URL, or write ingest_url with: lifelog-macos-collect init-config")
 	}
 	token = os.Getenv("MACOS_INGEST_BEARER_TOKEN")
 	if token == "" {
 		token = readKeychainToken()
 	}
 	if token == "" {
-		return "", "", dir, fmt.Errorf("Set MACOS_INGEST_BEARER_TOKEN or store it in the keychain service lifelog-macos-ingest")
+		return "", "", "", dir, fmt.Errorf("Set MACOS_INGEST_BEARER_TOKEN or store it in the keychain service lifelog-macos-ingest")
 	}
-	return url, token, dir, nil
+	personID = os.Getenv("MACOS_PERSON_ID")
+	if personID == "" {
+		personID = readConfig(configPath).PersonID
+	}
+	personID, err = normalizePersonID(personID)
+	if err != nil {
+		return "", "", "", dir, err
+	}
+	return url, token, personID, dir, nil
 }
 
-func readIngestURL(path string) string {
+func readConfig(path string) configFile {
 	body, err := os.ReadFile(path)
 	if err != nil {
-		return ""
+		return configFile{}
 	}
 	var parsed configFile
 	if json.Unmarshal(body, &parsed) != nil {
-		return ""
+		return configFile{}
 	}
-	return parsed.IngestURL
+	return parsed
 }
 
 func readKeychainToken() string {

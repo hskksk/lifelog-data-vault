@@ -27,7 +27,7 @@ Mac 上のデータを、OwnTracks と同じく **Supabase Edge → Storage Bron
 | パースの分担 | **正規化は Mac**。materialize は検証・ID 再計算・inbox 投入だけ |
 | 関数の数 | ingest 1 + materialize 1。`record_source` と `entity` で振り分ける。ソースごとに関数を複製しない |
 | 識別子 | **`hub_device` は OwnTracks の topic 専用のまま**。電源は `hub_machine`（hardware UUID）。スクリーンタイムは `hub_os_account`（そのマシン上の uid）。コンピュータ名は `sat_machine_details` の属性で、hub のキーにしない |
-| 人物キー | `hub_person` は人そのものなのでソースをまたいで共有する。`default_person_id`。任意で `machines:` / `os_accounts:` |
+| 人物キー | `hub_person` は人そのものなのでソースをまたいで共有する。Mac は収集アプリの `person_id`。OwnTracks は topic の user。同じ文字列なら同じ人 |
 | ハッシュ | 既存の `hash_key` / `hash_diff` と同じ **md5**。改ざん検知には使わない |
 | ヘルスケア原本 | ZIP / XML は Edge に送らない。Mac の archive に残す。Bronze に載るのはレコード JSON |
 | 初期の型 | ヘルスケアの Record は allowlist（歩数・心拍・体重・睡眠）。空 allowlist は全 Record 型。Workout と ActivitySummary は最初から対象 |
@@ -253,7 +253,7 @@ ID と hashdiff は materialize が再計算する。コレクタの seen-set �
 | `power_event_id` | 上記 |
 | `machine_bk` | hardware UUID そのもの。接頭辞は付けない |
 | `computer_name`, `model`, `os_version` | そのバッチを送った時点のマシン属性。`sat_machine_details` の入力 |
-| `person_id` | person_map の `machines:` または `default_person_id` |
+| `person_id` | 収集アプリが送る `collector.person_id`。スクリーンタイムの `machine_person_id` も同じ値 |
 | `occurred_at`, `kind`, `message`, `raw_line` | イベント |
 | `payload` | jsonb。エンベロープの collector と当該イベント |
 | `hashdiff` | sat に載る記述列 |
@@ -293,7 +293,7 @@ Phase 1 のストリームは `/app/usage` のみ。加えて `ZSTREAMNAME` ご�
 
 `os_account_bk` は `<hardware_uuid>:<uid>`。電源の `machine_bk` とは別の hub に入る。スクリーンタイムは OS ユーザーの DB であり、スリープはマシン単位だからである。`source_device_ref` は列として残すが hub にはしない。
 
-一意: `(usage_interval_id, batch_id)`。他列は `hardware_uuid`, `uid`, `computer_name`, `model`, `os_version`, `person_id`, `bundle_id`, `started_at`, `ended_at`, `duration_seconds`, `source_device_ref`, `payload`, `hashdiff`, `vault_loaded_at`。`computer_name` は区間のキーではなく、同じバッチのマシン属性である。
+一意: `(usage_interval_id, batch_id)`。他列は `hardware_uuid`, `uid`, `computer_name`, `model`, `os_version`, `person_id`, `machine_person_id`, `bundle_id`, `started_at`, `ended_at`, `duration_seconds`, `source_device_ref`, `payload`, `hashdiff`, `vault_loaded_at`。`person_id` と `machine_person_id` は、どちらも収集アプリが送った `collector.person_id` である。`computer_name` は区間のキーではなく、同じバッチのマシン属性である。
 
 ## 9. `apple_health`
 
@@ -384,7 +384,7 @@ ActivitySummary は同じ日の値が更新される。
 
 `ops.dbt_run_log` も変えない。
 
-`hub_person` も共有する。BK は `person_id` で、OwnTracks も Mac も「誰のライフログか」を指す。これは識別子の種類が同じだからである。所属は `person_map` の宣言であり、topic と hardware UUID が同一だという意味ではない。
+`hub_person` も共有する。BK は `person_id` で、OwnTracks も Mac も「誰のライフログか」を指す。これは識別子の種類が同じだからである。所属は送信側が決める。OwnTracks は topic の user、Mac は収集アプリの `person_id` である。topic と hardware UUID が同一だという意味ではない。
 
 landing は Raw Vault の外、既存と同じく staging inbox である。
 
@@ -504,7 +504,6 @@ supabase/functions/macos-ingest/
 supabase/functions/macos-materialize/
 config/apple_health_types.yml
 config/sources.yml                        # 既定値。enabled は false のまま始める
-config/person_map.yml                     # 任意の machines: / os_accounts:
 deploy/macos/app/Info.plist               # Lifelog Collect.app の情報
 deploy/macos/install-app.sh               # ~/Applications へインストールする
 deploy/macos/cmd/lifelog-macos-collect/   # アプリの実行ファイル。FDA の対象

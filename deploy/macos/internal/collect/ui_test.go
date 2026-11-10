@@ -19,7 +19,7 @@ func TestSettingsPageSavesURLAndReportsSend(t *testing.T) {
 	handler := newSettingsHandler("test-secret", nil)
 	page := httptest.NewRecorder()
 	handler.ServeHTTP(page, httptest.NewRequest(http.MethodGet, "/", nil))
-	if page.Code != http.StatusOK || !strings.Contains(page.Body.String(), "今すぐ送信") {
+	if page.Code != http.StatusOK || !strings.Contains(page.Body.String(), "今すぐ送信") || !strings.Contains(page.Body.String(), "person_id") {
 		t.Fatalf("page = %d %s", page.Code, page.Body.String())
 	}
 	if !strings.Contains(page.Body.String(), "test-secret") {
@@ -32,7 +32,7 @@ func TestSettingsPageSavesURLAndReportsSend(t *testing.T) {
 		t.Fatalf("settings without token = %d", denied.Code)
 	}
 
-	save := httptest.NewRequest(http.MethodPost, "/api/settings", strings.NewReader(`{"ingest_url":"https://example.test/macos-ingest","bearer_token":""}`))
+	save := httptest.NewRequest(http.MethodPost, "/api/settings", strings.NewReader(`{"ingest_url":"https://example.test/macos-ingest","person_id":" hskksk ","bearer_token":""}`))
 	save.Header.Set("X-Lifelog-Token", "test-secret")
 	saved := httptest.NewRecorder()
 	handler.ServeHTTP(saved, save)
@@ -41,8 +41,15 @@ func TestSettingsPageSavesURLAndReportsSend(t *testing.T) {
 		t.Fatalf("save = %d %s", saved.Code, body)
 	}
 	config, err := os.ReadFile(filepath.Join(dir, "config.json"))
-	if err != nil || !strings.Contains(string(config), "https://example.test/macos-ingest") {
+	if err != nil || !strings.Contains(string(config), "https://example.test/macos-ingest") || !strings.Contains(string(config), `"person_id": "hskksk"`) {
 		t.Fatalf("config = %s %v", config, err)
+	}
+	blank := httptest.NewRequest(http.MethodPost, "/api/settings", strings.NewReader(`{"ingest_url":"https://example.test/macos-ingest","person_id":"","bearer_token":""}`))
+	blank.Header.Set("X-Lifelog-Token", "test-secret")
+	rejected := httptest.NewRecorder()
+	handler.ServeHTTP(rejected, blank)
+	if rejected.Code != http.StatusBadRequest {
+		t.Fatalf("blank person = %d", rejected.Code)
 	}
 
 	run := httptest.NewRequest(http.MethodPost, "/api/run", nil)

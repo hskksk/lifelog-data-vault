@@ -69,7 +69,7 @@ func sourcesFor(args []string) ([]string, error) {
 }
 
 func runSource(source string, now time.Time) (string, error) {
-	url, token, dir, err := loadConfig()
+	url, token, personID, dir, err := loadConfig()
 	if err != nil {
 		return "", err
 	}
@@ -77,6 +77,7 @@ func runSource(source string, now time.Time) (string, error) {
 	if err != nil {
 		return "", err
 	}
+	identity.PersonID = personID
 	switch source {
 	case "power":
 		return sendPower(identity, dir, url, token, now)

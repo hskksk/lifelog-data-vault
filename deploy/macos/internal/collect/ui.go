@@ -24,11 +24,13 @@ const settingsAddr = "127.0.0.1:47631"
 
 type settingsView struct {
 	IngestURL  string `json:"ingest_url"`
+	PersonID   string `json:"person_id"`
 	TokenState string `json:"token_state"`
 }
 
 type settingsUpdate struct {
 	IngestURL   string `json:"ingest_url"`
+	PersonID    string `json:"person_id"`
 	BearerToken string `json:"bearer_token"`
 }
 
@@ -119,7 +121,7 @@ func newSettingsHandler(secret string, quit func()) http.Handler {
 			http.Error(w, "invalid json", http.StatusBadRequest)
 			return
 		}
-		if err := saveIngestURL(stateDirFromEnv(), update.IngestURL); err != nil {
+		if err := saveConfig(stateDirFromEnv(), update.IngestURL, update.PersonID); err != nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
@@ -166,11 +168,16 @@ func writeJSON(w http.ResponseWriter, value any) {
 
 func currentSettings() settingsView {
 	dir := stateDirFromEnv()
+	file := readConfig(filepath.Join(dir, "config.json"))
 	url := os.Getenv("MACOS_INGEST_URL")
 	if url == "" {
-		url = readIngestURL(filepath.Join(dir, "config.json"))
+		url = file.IngestURL
 	}
-	return settingsView{IngestURL: url, TokenState: tokenState()}
+	personID := os.Getenv("MACOS_PERSON_ID")
+	if personID == "" {
+		personID = file.PersonID
+	}
+	return settingsView{IngestURL: url, PersonID: strings.TrimSpace(personID), TokenState: tokenState()}
 }
 
 func tokenState() string {
@@ -250,10 +257,12 @@ const settingsPage = `<!doctype html>
 <body>
 <main>
   <h1>ライフログ収集</h1>
-  <p class="lead">送信先を保存して、いまの電源とスクリーンタイムを送れます。結果は下に出ます。</p>
+  <p class="lead">送信先と person_id を保存して、いまの電源とスクリーンタイムを送れます。person_id は OwnTracks の user と同じにしてください。</p>
   <form id="form">
     <label for="url">送信先 URL</label>
     <input id="url" name="ingest_url" autocomplete="off" spellcheck="false" required>
+    <label for="person">person_id</label>
+    <input id="person" name="person_id" autocomplete="off" spellcheck="false" required placeholder="OwnTracks の user">
     <label for="token">Bearer トークン</label>
     <input id="token" name="bearer_token" type="password" autocomplete="off" placeholder="変えるときだけ入力">
     <p class="note" id="token-state"></p>
@@ -270,6 +279,7 @@ const settingsPage = `<!doctype html>
 const secret = {{ . }};
 const headers = { "Content-Type": "application/json", "X-Lifelog-Token": secret };
 const url = document.querySelector("#url");
+const person = document.querySelector("#person");
 const token = document.querySelector("#token");
 const tokenState = document.querySelector("#token-state");
 const status = document.querySelector("#status");
@@ -280,6 +290,7 @@ async function load() {
   const response = await fetch("/api/settings", { headers });
   const body = await response.json();
   url.value = body.ingest_url || "";
+  person.value = body.person_id || "";
   tokenState.textContent = body.token_state || "";
 }
 
@@ -289,7 +300,7 @@ document.querySelector("#form").addEventListener("submit", async (event) => {
   const response = await fetch("/api/settings", {
     method: "POST",
     headers,
-    body: JSON.stringify({ ingest_url: url.value, bearer_token: token.value })
+    body: JSON.stringify({ ingest_url: url.value, person_id: person.value, bearer_token: token.value })
   });
   if (!response.ok) {
     status.textContent = await response.text();

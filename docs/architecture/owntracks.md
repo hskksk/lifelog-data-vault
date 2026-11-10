@@ -20,7 +20,7 @@
 | 公開経路 | **Supabase Edge Function**（本番）。自前ホスト時は [Cloudflare Tunnel](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/)（レガシー） |
 | 空間キー | **最初から H3**（resolution 9）を `hub_location_h3` のビジネスキー |
 | 端末キー | **`topic` 全文**を `hub_device` の BK（例: `owntracks/me/iphone`）。ハードウェア UUID や OS アカウントは別 hub（[macos-local-ingest.md](./macos-local-ingest.md)） |
-| 人物キー | **`config/person_map.yml` の `person_id`**（個人は `me` 等 1 行で開始） |
+| 人物キー | topic の user（`owntracks/<user>/<device>` の `<user>`）をそのまま `person_id` にする |
 
 `tid` は HTTP モードで必須だが **Hub キーにしない**（表示・Sat 属性として保持。端末識別は `topic` が安定）。
 
@@ -101,7 +101,7 @@ Secrets（リポジトリ外）: `INGEST_BEARER_TOKEN`, R2 資格情報, Tunnel 
 |----|------|
 | `location_event_id` | `md5(topic \|\| tst \|\| lat \|\| lon \|\| coalesce(t,''))` |
 | `topic` | payload |
-| `person_id` | `person_map` から（topic の user セグメントまたは default） |
+| `person_id` | topic の user セグメント |
 | `tid`, `tst`, `lat`, `lon` | payload |
 | `h3_index_r9` | lat/lon → H3 res 9（materialize または dbt 前処理） |
 | `trigger_code` | `t` |
@@ -164,7 +164,6 @@ packages/ingest/src/              # TypeScript (@lifelog/ingest)
 packages/dbt/models/staging/stg_owntracks__location.sql
 packages/dbt/models/raw_vault/...   # hub/link/sat
 config/sources.yml                  # owntracks.enabled
-config/person_map.yml
 deploy/oci/systemd/                 # lifelog-owntracks-web, cloudflared
 ```
 

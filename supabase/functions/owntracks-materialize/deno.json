@@ -2,11 +2,10 @@
   "imports": {
     "@lifelog/bronze": "../../../packages/ingest-core/dist/bronze.js",
     "@lifelog/supabase-admin": "../_shared/supabase-admin.ts",
-    "@lifelog/person-map": "../../../packages/ingest-core/src/person-map.ts",
+    "@lifelog/person-id": "../../../packages/ingest-core/src/person-id.ts",
     "@lifelog/parse": "../../../packages/ingest-core/src/owntracks/parse.ts",
     "@supabase/supabase-js": "npm:@supabase/supabase-js@2.49.8",
     "h3-js": "npm:h3-js@4.5.0",
-    "hono": "npm:hono@4.7.11",
-    "yaml": "npm:yaml@2.7.0"
+    "hono": "npm:hono@4.7.11"
   }
 }

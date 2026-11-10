@@ -1,5 +1,5 @@
 import { bronzeStorageObjectPath } from "@lifelog/bronze";
-import { type PersonMapFile, resolvePersonId } from "@lifelog/person-map";
+import { personIdFromOwntracksTopic } from "@lifelog/person-id";
 import {
   type OwnTracksPayload,
   parseLocationPayload,
@@ -10,7 +10,6 @@ import {
   createAdminClient,
 } from "@lifelog/supabase-admin";
 import { Hono } from "hono";
-import YAML from "yaml";
 
 const BRONZE_BUCKET = "bronze";
 const RECORD_SOURCE = "owntracks";
@@ -27,20 +26,6 @@ function receivedAtFromFileName(fileName: string): string {
   const base = fileName.replace(/\.json$/, "");
   const idx = base.lastIndexOf("_");
   return idx > 0 ? base.slice(0, idx) : base;
-}
-
-async function loadPersonMap(): Promise<PersonMapFile> {
-  const yamlEnv = Deno.env.get("PERSON_MAP_YAML");
-  if (yamlEnv) {
-    return (YAML.parse(yamlEnv) as PersonMapFile) ?? {};
-  }
-  const supabase = createAdminClient();
-  const { data, error } = await supabase.storage.from(BRONZE_BUCKET).download("config/person_map.yml");
-  if (!error && data) {
-    const text = await data.text();
-    return (YAML.parse(text) as PersonMapFile) ?? {};
-  }
-  return { default_person_id: "me" };
 }
 
 const app = new Hono().basePath(`/${FUNCTION_NAME}`);
@@ -60,7 +45,6 @@ app.post("/", async (c) => {
   const maxBatches = intEnv("MATERIALIZE_MAX_BATCHES", 20);
   const maxFilesPerBatch = intEnv("MATERIALIZE_MAX_FILES_PER_BATCH", 50);
   const supabase = createAdminClient();
-  const personMap = await loadPersonMap();
 
   const { data: batches, error: listError } = await supabase.rpc("list_ingest_batches_to_materialize", {
     p_record_source: RECORD_SOURCE,
@@ -107,9 +91,12 @@ app.post("/", async (c) => {
       }
       if (payload._type !== "location") continue;
 
-      const topic = String(payload.topic ?? "owntracks/unknown/phone");
-      const personId = resolvePersonId(topic, personMap);
-      const row = parseLocationPayload(payload, personId);
+      const topic = typeof payload.topic === "string" ? payload.topic : "";
+      if (!personIdFromOwntracksTopic(topic)) {
+        console.error("owntracks topic has no user", { objectPath, topic });
+        continue;
+      }
+      const row = parseLocationPayload(payload);
       const receivedAt = receivedAtFromFileName(file.name);
 
       const { data: inserted, error: insertError } = await supabase.rpc("insert_owntracks_inbox", {

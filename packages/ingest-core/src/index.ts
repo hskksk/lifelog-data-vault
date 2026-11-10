@@ -6,7 +6,7 @@ export {
   type BronzeWritePlan,
   planBronzeJsonWrite,
 } from "./bronze-layout";
-export { type PersonMapFile, resolveMachinePersonId, resolveOsAccountPersonId, resolvePersonId } from "./person-map";
+export { normalizePersonId, personIdFromOwntracksTopic } from "./person-id";
 export {
   locationEventId,
   type OwnTracksLocation,

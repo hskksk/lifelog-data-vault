@@ -2,14 +2,8 @@ import { bronzeStorageObjectPath } from "@lifelog/bronze";
 import { collectorOsAccountBk, type MacosEnvelope, validateMacosEnvelope } from "@lifelog/macos-envelope";
 import { machineDetailsHashdiff, powerEventHashdiff, powerEventId } from "@lifelog/macos-power";
 import { screenTimeHashdiff, usageIntervalId } from "@lifelog/macos-screentime";
-import {
-  type PersonMapFile,
-  resolveMachinePersonId,
-  resolveOsAccountPersonId,
-} from "@lifelog/person-map";
 import { authorizeMaterializeRequest, createAdminClient } from "@lifelog/supabase-admin";
 import { Hono } from "hono";
-import YAML from "yaml";
 
 const BRONZE_BUCKET = "bronze";
 const FUNCTION_NAME = "macos-materialize";
@@ -26,20 +20,6 @@ function receivedAtFromFileName(fileName: string): string {
   const base = fileName.replace(/\.json$/, "");
   const idx = base.lastIndexOf("_");
   return idx > 0 ? base.slice(0, idx) : base;
-}
-
-async function loadPersonMap(): Promise<PersonMapFile> {
-  const yamlEnv = Deno.env.get("PERSON_MAP_YAML");
-  if (yamlEnv) {
-    return (YAML.parse(yamlEnv) as PersonMapFile) ?? {};
-  }
-  const supabase = createAdminClient();
-  const { data, error } = await supabase.storage.from(BRONZE_BUCKET).download("config/person_map.yml");
-  if (!error && data) {
-    const text = await data.text();
-    return (YAML.parse(text) as PersonMapFile) ?? {};
-  }
-  return { default_person_id: "me" };
 }
 
 async function finishBatch(
@@ -65,15 +45,14 @@ async function insertEnvelope(
   bronzeKey: string,
   receivedAt: string,
   envelope: MacosEnvelope,
-  personMap: PersonMapFile,
 ): Promise<{ inserted: number } | { error: string }> {
   const supabase = createAdminClient();
   const collector = envelope.collector;
+  const personId = collector.person_id;
   const machineHash = machineDetailsHashdiff(collector.computer_name, collector.model, collector.os_version);
   let inserted = 0;
 
   if (envelope.record_source === "macos_power") {
-    const personId = resolveMachinePersonId(collector.hardware_uuid, personMap);
     for (const event of envelope.events) {
       const { data, error } = await supabase.rpc("insert_macos_power_inbox", {
         p_batch_id: batchId,
@@ -100,8 +79,6 @@ async function insertEnvelope(
   }
 
   const osBk = collectorOsAccountBk(collector);
-  const personId = resolveOsAccountPersonId(osBk, personMap);
-  const machinePersonId = resolveMachinePersonId(collector.hardware_uuid, personMap);
   for (const event of envelope.events) {
     const { data, error } = await supabase.rpc("insert_macos_screentime_inbox", {
       p_batch_id: batchId,
@@ -112,7 +89,7 @@ async function insertEnvelope(
       p_hardware_uuid: collector.hardware_uuid,
       p_uid: collector.os_user_id,
       p_person_id: personId,
-      p_machine_person_id: machinePersonId,
+      p_machine_person_id: personId,
       p_computer_name: collector.computer_name,
       p_model: collector.model,
       p_os_version: collector.os_version,
@@ -148,7 +125,6 @@ app.post("/", async (c) => {
 
   const maxBatches = intEnv("MATERIALIZE_MAX_BATCHES", 20);
   const supabase = createAdminClient();
-  const personMap = await loadPersonMap();
   let rowsInserted = 0;
   let batchesStaged = 0;
   let batchesRejected = 0;
@@ -208,7 +184,6 @@ app.post("/", async (c) => {
         `bronze/${objectPath}`,
         receivedAtFromFileName(jsonFile.name),
         validated.envelope,
-        personMap,
       );
       if ("error" in inserted) {
         console.error("inbox insert failed", inserted.error);

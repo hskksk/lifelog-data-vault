@@ -6,7 +6,7 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
 import { chunkEvents } from "../src/chunk";
-import { writeConfigTemplate } from "../src/config";
+import { loadCollectorConfig, writeConfigTemplate } from "../src/config";
 import { parseIoregPlatformUuid, powerEnvelopes, powerEventsInWindow } from "../src/power";
 import { extractScreenTime, screenTimeQuery } from "../src/screentime";
 import { readState, windowStart, writeState } from "../src/state";
@@ -36,6 +36,7 @@ describe("mac collector helpers", () => {
           model: "Mac14,13",
           os_version: "15.1",
           timezone: "Asia/Tokyo",
+          person_id: "hskksk",
         },
         [],
         "2026-11-08T08:00:00.000Z",
@@ -134,6 +135,22 @@ describe("mac collector helpers", () => {
     const second = writeConfigTemplate(dir, "https://example.test/macos-ingest");
     expect(second.created).toBe(false);
     expect(readFileSync(first.path, "utf8")).toContain("keep-me");
+  });
+
+  it("requires a person_id before sending", () => {
+    expect(() =>
+      loadCollectorConfig({
+        MACOS_INGEST_URL: "https://example.test/macos-ingest",
+        MACOS_INGEST_BEARER_TOKEN: "secret",
+      }),
+    ).toThrow(/person_id/);
+    expect(
+      loadCollectorConfig({
+        MACOS_INGEST_URL: "https://example.test/macos-ingest",
+        MACOS_INGEST_BEARER_TOKEN: "secret",
+        MACOS_PERSON_ID: " hskksk ",
+      }).personId,
+    ).toBe("hskksk");
   });
 
   it("remembers the covered-until watermark", () => {

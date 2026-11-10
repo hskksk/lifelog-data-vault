@@ -251,7 +251,7 @@ device が二つ以上ある分は、緯度経度を平均しない。`lat` / `l
 
 ## 8. 人の結び方
 
-位置、電源、アプリの三つの経路は、すでに `config/person_map.yml` の `person_id` に結んである。
+位置は OwnTracks topic の user、電源とアプリは Mac 収集アプリの `person_id` で結ぶ。同じ文字列なら同じ `hub_person` になる。
 
 | 経路 | link |
 |------|------|

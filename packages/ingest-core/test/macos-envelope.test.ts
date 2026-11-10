@@ -2,7 +2,6 @@ import { describe, expect, it } from "vitest";
 
 import { batchMetaJson, newBatchMeta } from "../src/batch";
 import { validateMacosEnvelope } from "../src/macos/envelope";
-import { resolveMachinePersonId, resolveOsAccountPersonId } from "../src/person-map";
 
 const collector = {
   hardware_uuid: "AAAAAAAA-BBBB-CCCC-DDDD-EEEEEEEEEEEE",
@@ -11,6 +10,7 @@ const collector = {
   model: "Mac14,13",
   os_version: "15.1",
   timezone: "Asia/Tokyo",
+  person_id: "hskksk",
 };
 
 describe("validateMacosEnvelope", () => {
@@ -31,7 +31,10 @@ describe("validateMacosEnvelope", () => {
       ],
     });
     expect(result.ok).toBe(true);
-    if (result.ok) expect(result.envelope.exported_at).toBe("2026-11-08T00:15:00+00:00");
+    if (result.ok) {
+      expect(result.envelope.exported_at).toBe("2026-11-08T00:15:00+00:00");
+      expect(result.envelope.collector.person_id).toBe("hskksk");
+    }
   });
 
   it("rejects an empty batch, a health entity, and a missing computer name", () => {
@@ -64,19 +67,22 @@ describe("validateMacosEnvelope", () => {
       events: [],
     });
     expect(missingName.ok).toBe(false);
-  });
-});
-
-describe("person map for machines", () => {
-  it("uses the machine map, then the default person", () => {
-    const map = {
-      default_person_id: "me",
-      machines: { "AAAAAAAA-BBBB-CCCC-DDDD-EEEEEEEEEEEE": "me" },
-      os_accounts: { "AAAAAAAA-BBBB-CCCC-DDDD-EEEEEEEEEEEE:501": "me" },
-    };
-    expect(resolveMachinePersonId("AAAAAAAA-BBBB-CCCC-DDDD-EEEEEEEEEEEE", map)).toBe("me");
-    expect(resolveMachinePersonId("other", map)).toBe("me");
-    expect(resolveOsAccountPersonId("AAAAAAAA-BBBB-CCCC-DDDD-EEEEEEEEEEEE:501", map)).toBe("me");
+    const missingPerson = validateMacosEnvelope({
+      schema_version: 1,
+      record_source: "macos_power",
+      entity: "power_event",
+      exported_at: "2026-11-08T00:15:00Z",
+      collector: { ...collector, person_id: "  " },
+      events: [
+        {
+          occurred_at: "2026-11-08T07:01:02+09:00",
+          kind: "Sleep",
+          message: "Entering Sleep",
+          raw_line: "2026-11-08 07:01:02 +0900 Sleep Entering Sleep",
+        },
+      ],
+    });
+    expect(missingPerson.ok).toBe(false);
   });
 });
 
