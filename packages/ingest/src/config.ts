@@ -9,7 +9,6 @@ export type Settings = {
   databaseUrl: string;
   r2: R2Config | null;
   ingestBearerToken: string | null;
-  personMapPath: string;
   bronzeLocalDir: string;
 };
 
@@ -40,7 +39,6 @@ export function getSettings(): Settings {
       "postgresql://lifelog:lifelog@localhost:5432/lifelog",
     r2,
     ingestBearerToken: process.env.INGEST_BEARER_TOKEN?.trim() ?? null,
-    personMapPath: process.env.PERSON_MAP_PATH?.trim() ?? "config/person_map.yml",
     bronzeLocalDir: process.env.BRONZE_LOCAL_DIR?.trim() ?? "var/bronze",
   };
   return cached;

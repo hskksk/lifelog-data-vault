@@ -11,8 +11,7 @@ import {
   listBatchesToMaterialize,
   markBatchStaged,
 } from "../db.js";
-import { resolvePersonId } from "../person-map.js";
-import { parseLocationPayload, type OwnTracksPayload } from "./parse.js";
+import { personIdFromOwntracksTopic, parseLocationPayload, type OwnTracksPayload } from "./parse.js";
 
 async function streamToString(body: unknown): Promise<string> {
   if (!body || typeof body !== "object" || !("transformToString" in body)) {
@@ -84,14 +83,13 @@ async function processPayload(
     bronzeKey: string;
     receivedAt: string;
     payload: OwnTracksPayload;
-    mapPath: string;
   },
 ): Promise<boolean> {
   const { payload } = opts;
   if (payload._type !== "location") return false;
-  const topic = String(payload.topic ?? "owntracks/unknown/phone");
-  const personId = resolvePersonId(topic, opts.mapPath);
-  const row = parseLocationPayload(payload, personId);
+  const topic = typeof payload.topic === "string" ? payload.topic : "";
+  if (!personIdFromOwntracksTopic(topic)) return false;
+  const row = parseLocationPayload(payload);
   return insertOwntracksInbox(pool, {
     batchId: opts.batchId,
     bronzeKey: opts.bronzeKey,
@@ -117,7 +115,6 @@ export async function materializeOwntracks(): Promise<number> {
               bronzeKey: key,
               receivedAt: receivedAtFromFileName(fileName),
               payload,
-              mapPath: settings.personMapPath,
             })
           ) {
             loaded += 1;
@@ -133,7 +130,6 @@ export async function materializeOwntracks(): Promise<number> {
               bronzeKey: path,
               receivedAt: receivedAtFromFileName(fileName),
               payload,
-              mapPath: settings.personMapPath,
             })
           ) {
             loaded += 1;

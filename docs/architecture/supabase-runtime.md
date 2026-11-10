@@ -107,7 +107,7 @@ bronze/owntracks/dt=YYYY-MM-DD/batch=<uuid>/_meta/batch.json
 
 - Deno + **Hono**（`packages/ingest` の parse / batch / paths ロジックを **`packages/ingest-core`** または `_shared` に抽出し Edge から import）
 - DB: `@supabase/supabase-js` + **secret key**（`_shared/supabase-admin.ts`）、Postgres 直結は使わない
-- **location の parse / H3 / person_map** は ingest 時点では不要（生 JSON のみ Bronze）。materialize で実施（現行 TS と同じ）
+- **location の parse / H3 / topic の user を person_id にすること** は ingest 時点では不要（生 JSON のみ Bronze）。materialize で実施（現行 TS と同じ）
 
 ### 4.2 `owntracks-materialize`
 
@@ -123,7 +123,7 @@ Cron 間隔: **15 分**（`config/sources.yml` の `materialize_interval_minutes
 ### 4.3 共有コード配置（モノレポ）
 
 ```
-packages/ingest-core/          # ランタイム非依存（parse, person-map, batch paths, hashdiff）
+packages/ingest-core/          # ランタイム非依存（parse, person id, batch paths, hashdiff）
 supabase/functions/
   _shared/                     # db client, storage bronze writer, settings
   owntracks-ingest/index.ts
@@ -163,9 +163,8 @@ Cron は `public.invoke_owntracks_materialize()` が `https://{supabase_project_
 | `INGEST_BEARER_TOKEN` | OwnTracks → Edge 認証 |
 | （Hosted Edge） | 本番 Functions は `SUPABASE_SECRET_KEYS` をプラットフォーム注入（`default` を `_shared/supabase-admin.ts` が使用） |
 | `SUPABASE_URL` | 同上 |
-| `PERSON_MAP_JSON` または Storage 上 `config/person_map.yml` | person_id 解決（materialize 時） |
 
-`person_map` は **Git 管理の YAML を deploy 時に Secret / Storage に同期**する運用でよい。
+`person_id` は送信側が決める。OwnTracks は topic の user、Mac は収集アプリの設定である。
 
 ---
 
@@ -243,11 +242,9 @@ jobs:
 
 **任意:** `SUPABASE_DB_PUSH_URL` — API 取得を使わない場合は Dashboard → Connect → **Session pooler** の接続文字列。`?sslmode=require` が無ければ deploy 側で付与。
 
-**任意:** `PERSON_MAP_YAML` — materialize が Storage の `config/person_map.yml` の代わりに使う場合。
-
 **ローカル:** `pnpm --filter @lifelog/ingest-core build` のあと `.env` に Edge 用シークレットのみ載せ、`pnpm deploy`（要 `SUPABASE_*` 環境変数）。
 
-**手動で残す作業（deploy 外）:** Vault **`dbt_runner_password`** と **`bi_reader_password`**（初回）→ deploy で sync、Bronze **`config/person_map.yml`**。materialize Cron は deploy が Vault（`supabase_project_id` / `supabase_secret_key`）を更新。`BI_READER_PASSWORD` を deploy の環境に渡すと Vault も upsert する（[metabase-setup.md](../operations/metabase-setup.md)）。
+**手動で残す作業（deploy 外）:** Vault **`dbt_runner_password`** と **`bi_reader_password`**（初回）→ deploy で sync。materialize Cron は deploy が Vault（`supabase_project_id` / `supabase_secret_key`）を更新。`BI_READER_PASSWORD` を deploy の環境に渡すと Vault も upsert する（[metabase-setup.md](../operations/metabase-setup.md)）。
 
 **OCI / cloudflared:** 本設計では **プロダクション対象外**。README に「Supabase ランタイム」を正と記載。
 
@@ -308,7 +305,6 @@ Free tier 内で開始し、容量アラートで Supabase Dashboard を見る�
 ## 11. 未決事項（実装前に 1 行で決める）
 
 1. **materialize の 1 実行あたり batch 上限**（デフォルト 20 でよいか）
-2. **`person_map` の配布**（Edge Secret JSON vs Storage `config/person_map.yml`）
-3. **dbt Cron** — **毎時 0 分 UTC**（`owntracks-dbt.yml`）
+2. **dbt Cron** — **毎時 0 分 UTC**（`owntracks-dbt.yml`）
 
-デフォルト提案: batch 上限 **20**、person_map **Storage に sync**。
+デフォルト提案: batch 上限 **20**。`person_id` は送信側（OwnTracks の user、Mac 収集アプリの設定）で決まり、Storage には置かない。

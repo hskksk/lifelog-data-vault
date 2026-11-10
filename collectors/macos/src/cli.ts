@@ -44,7 +44,7 @@ async function sendScreenTime(
 
 async function runSource(source: SourceName): Promise<number> {
   const config = loadCollectorConfig();
-  const identity = readMachineIdentity();
+  const identity = { ...readMachineIdentity(), person_id: config.personId };
   try {
     if (source === "power") {
       await sendPower(identity, config.stateDir, config.ingestUrl, config.bearerToken);

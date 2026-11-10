@@ -1,6 +1,8 @@
 import { createHash } from "node:crypto";
 import { latLngToCell } from "h3-js";
 
+import { personIdFromOwntracksTopic } from "../person-id.ts";
+
 export type OwnTracksPayload = Record<string, unknown>;
 
 export type OwnTracksLocation = {
@@ -55,14 +57,15 @@ function asStringList(value: unknown): string[] | null {
   return value.every((x) => typeof x === "string") ? (value as string[]) : null;
 }
 
-export function parseLocationPayload(
-  payload: OwnTracksPayload,
-  personId: string,
-): OwnTracksLocation {
+export function parseLocationPayload(payload: OwnTracksPayload): OwnTracksLocation {
   if (payload._type !== "location") {
     throw new Error(`Expected _type=location, got ${String(payload._type)}`);
   }
-  const topic = String(payload.topic ?? "owntracks/unknown/phone");
+  const topic = typeof payload.topic === "string" ? payload.topic : "";
+  const personId = personIdFromOwntracksTopic(topic);
+  if (!personId) {
+    throw new Error("OwnTracks topic has no user");
+  }
   const lat = Number(payload.lat);
   const lon = Number(payload.lon);
   const tstRaw = Number(payload.tst);

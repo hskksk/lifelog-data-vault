@@ -18,7 +18,7 @@ export function parseIoregPlatformUuid(text: string): string | null {
   return match?.[1] ?? null;
 }
 
-export function readMachineIdentity(now = new Date()): CollectorIdentity {
+export function readMachineIdentity(now = new Date()): Omit<CollectorIdentity, "person_id"> {
   const ioreg = execFileSync("ioreg", ["-rd1", "-c", "IOPlatformExpertDevice"], { encoding: "utf8" });
   const hardware = parseIoregPlatformUuid(ioreg);
   if (!hardware) throw new Error("IOPlatformUUID was not found");

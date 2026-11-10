@@ -4,4 +4,5 @@ export {
   type OwnTracksPayload,
   parseLocationPayload,
   payloadHashdiff,
+  personIdFromOwntracksTopic,
 } from "@lifelog/ingest-core";

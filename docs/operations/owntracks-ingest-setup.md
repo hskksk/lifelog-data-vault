@@ -59,7 +59,7 @@ https://<project-ref>.supabase.co/functions/v1/owntracks-ingest
 
 **Android** も Identification の username / password で Basic 送信（[#2144](https://github.com/owntracks/android/issues/2144) — カスタムヘッダは未対応）。上記 **Password = 共有秘密** で Edge に接続できる。
 
-Identification の **username / device name** は Bearer とは別。HTTP では [`X-Limit-U` / `X-Limit-D`](https://owntracks.org/booklet/tech/http/) や JSON の `topic`（例: `owntracks/<user>/<device>`）の識別に使う。materialize 時の `person_map` と整合させる（[config/person_map.yml](../../config/person_map.yml)）。
+Identification の **username / device name** は Bearer とは別。HTTP では [`X-Limit-U` / `X-Limit-D`](https://owntracks.org/booklet/tech/http/) や JSON の `topic`（例: `owntracks/<user>/<device>`）の識別に使う。`<user>` がそのまま `person_id` になる。Mac の収集アプリの `person_id` と同じ文字列にすると、位置と Mac の記録が同じ人になる。
 
 ### 2.4 その他（推奨）
 
@@ -80,7 +80,7 @@ Identification の **username / device name** は Bearer とは別。HTTP では
 | OwnTracks | Mode | HTTP (`3`) |
 | OwnTracks | URL | `https://<project-ref>.supabase.co/functions/v1/owntracks-ingest` |
 | OwnTracks | Identification → **password** | **`INGEST_BEARER_TOKEN` と同じ**（Basic） |
-| OwnTracks | Identification → user / device | 任意だが `topic`・`person_map` 用に推奨 |
+| OwnTracks | Identification → user / device | user は `person_id`。device は topic の端末名 |
 
 ingest **以降**（Bronze → staging → dbt）は端末設定不要。materialize Cron は Vault（[supabase-runtime.md](../architecture/supabase-runtime.md)）。
 

@@ -1,3 +1,4 @@
+import { normalizePersonId } from "../person-id.ts";
 import {
   isPowerKind,
   MACOS_MAX_EVENTS,
@@ -19,6 +20,7 @@ export type CollectorIdentity = {
   model: string;
   os_version: string;
   timezone: string;
+  person_id: string;
 };
 
 export type MacosPowerEnvelope = {
@@ -63,6 +65,8 @@ function readCollector(value: unknown): CollectorIdentity | string {
   if (typeof name !== "string" || name.trim().length === 0) {
     return "collector.computer_name is required";
   }
+  const personId = normalizePersonId(value.person_id);
+  if (!personId) return "collector.person_id is required";
   return {
     hardware_uuid: hardware.trim(),
     os_user_id: uid,
@@ -70,6 +74,7 @@ function readCollector(value: unknown): CollectorIdentity | string {
     model: typeof value.model === "string" ? value.model : "",
     os_version: typeof value.os_version === "string" ? value.os_version : "",
     timezone: typeof value.timezone === "string" ? value.timezone : "",
+    person_id: personId,
   };
 }
 

@@ -1,3 +1,4 @@
+import { normalizePersonId } from "@lifelog/ingest-core";
 import { execFileSync } from "node:child_process";
 import { chmodSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
@@ -6,6 +7,7 @@ import { join } from "node:path";
 export type CollectorConfig = {
   ingestUrl: string;
   bearerToken: string;
+  personId: string;
   stateDir: string;
 };
 
@@ -44,15 +46,26 @@ export function loadCollectorConfig(env: NodeJS.ProcessEnv = process.env): Colle
   if (!bearerToken) {
     throw new Error("Set MACOS_INGEST_BEARER_TOKEN or store it in the keychain service lifelog-macos-ingest");
   }
-  return { ingestUrl, bearerToken, stateDir };
+  const personId = normalizePersonId(env.MACOS_PERSON_ID || readPersonId(join(stateDir, "config.json")) || "");
+  if (!personId) {
+    throw new Error("Set MACOS_PERSON_ID, or write person_id in config.json");
+  }
+  return { ingestUrl, bearerToken, personId, stateDir };
 }
 
 function readIngestUrl(path: string): string | undefined {
+  return readConfig(path).ingest_url;
+}
+
+function readPersonId(path: string): string | undefined {
+  return readConfig(path).person_id;
+}
+
+function readConfig(path: string): { ingest_url?: string; person_id?: string } {
   try {
-    const parsed = JSON.parse(readFileSync(path, "utf8")) as { ingest_url?: string };
-    return parsed.ingest_url;
+    return JSON.parse(readFileSync(path, "utf8")) as { ingest_url?: string; person_id?: string };
   } catch {
-    return undefined;
+    return {};
   }
 }
 

@@ -24,13 +24,17 @@ func TestPowerWindowAndEmptyEnvelope(t *testing.T) {
 	if events[0].OccurredAt != "2026-11-08T06:30:00+00:00" {
 		t.Fatalf("occurred = %s", events[0].OccurredAt)
 	}
-	identity := Identity{HardwareUUID: "MACHINE", OSUserID: 501, ComputerName: "Studio", Model: "Mac14,13", OSVersion: "15.1", Timezone: "Asia/Tokyo"}
+	identity := Identity{HardwareUUID: "MACHINE", OSUserID: 501, ComputerName: "Studio", Model: "Mac14,13", OSVersion: "15.1", Timezone: "Asia/Tokyo", PersonID: "hskksk"}
 	if got := powerEnvelopes(identity, nil, "2026-11-08T08:00:00.000Z"); len(got) != 0 {
 		t.Fatalf("empty envelopes = %#v", got)
 	}
 	envelopes := powerEnvelopes(identity, events, "2026-11-08T08:00:00.000Z")
 	if len(envelopes) != 1 || envelopes[0].ExportedAt != "2026-11-08T08:00:00+00:00" {
 		t.Fatalf("envelope = %#v", envelopes)
+	}
+	body, err := marshalJSON(envelopes[0])
+	if err != nil || !strings.Contains(string(body), `"person_id":"hskksk"`) {
+		t.Fatalf("body = %s %v", body, err)
 	}
 }
 
