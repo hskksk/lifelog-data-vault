@@ -66,3 +66,4 @@ inner join {{ ref('link_person_machine') }} as person_machine
     on person_machine.machine_hk = intervals.machine_hk
 inner join {{ ref('hub_person') }} as person
     on person.person_hk = person_machine.person_hk
+where {{ exclude_retired_person_ids('person.person_bk') }}
