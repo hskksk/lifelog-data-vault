@@ -150,7 +150,7 @@ sat_owntracks_location          属性 + hashdiff（insert-only）
 | 項目 | 方針 |
 |------|------|
 | Webhook | 常時 |
-| materialize + dbt | 15 分〜1 時間 cron、`dbt run --select tag:owntracks` |
+| materialize + dbt | materialize は 15 分 cron。dbt は毎時 `dbt build`（全モデル） |
 | `ops.ingest_batch` | received → staged → vault_loaded |
 | アラート | 24h fix 0 件 → Tunnel / アプリ / 証明書確認 |
 

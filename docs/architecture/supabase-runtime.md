@@ -31,7 +31,7 @@ flowchart TB
   CRON[Supabase Cron]
   EF_MAT[Edge: owntracks-materialize]
   GH[GitHub Actions dbt manual]
-  DBT[dbt build tag:owntracks]
+  DBT[dbt build（全モデル）]
 
   OT -->|POST JSON| EF_IN
   EF_IN --> BR
@@ -172,14 +172,14 @@ Cron は `public.invoke_owntracks_materialize()` が `https://{supabase_project_
 
 ### 6.1 接続
 
-- **GitHub Actions** `schedule` **毎時** + `workflow_dispatch`（`owntracks-dbt.yml`；materialize は DB 側 **15 分** Cron）
+- **GitHub Actions** `schedule` **毎時** + `workflow_dispatch`（`dbt.yml` が全モデル；materialize は DB 側 **15 分** Cron）
 - **接続:** session pooler + ロール **`dbt_runner`**。パスワードは **Vault `dbt_runner_password`** → deploy / `ops.sync_dbt_runner_password_from_vault()` がロールに反映。CI（dbt **1.12**）は [resolve-dbt-connection.ts](../../scripts/resolve-dbt-connection.ts) が deploy と同じ pooler 解決 + Vault 読み取りし、field-based `profiles.yml` を生成（[dbt-ci-setup.md](../operations/dbt-ci-setup.md)）
 - **`SUPABASE_DB_URL` GitHub secret は不要**
 
 ### 6.2 ワークフロー（イメージ）
 
 ```yaml
-# .github/workflows/owntracks-dbt.yml
+# .github/workflows/dbt.yml
 on:
   schedule:
     - cron: "0 * * * *"
@@ -187,7 +187,7 @@ on:
 jobs:
   dbt:
     steps:
-      - run: cd packages/dbt && dbt build --select tag:owntracks
+      - run: cd packages/dbt && dbt build
     env:
       DBT_PROFILES_DIR: .
       # DBT_PG_* from resolve-dbt-connection.ts
@@ -211,7 +211,7 @@ jobs:
 | 処理 | どこで動く | リポジトリ上の根拠 |
 |------|------------|-------------------|
 | **materialize**（Bronze → inbox） | **Supabase Postgres の pg_cron**（15 分） | `supabase/migrations/*materialize*cron*.sql` → ジョブ `owntracks-materialize` → `invoke_owntracks_materialize()` |
-| **dbt**（inbox → Vault / mart） | **GitHub Actions 毎時** + 手動 | [`.github/workflows/owntracks-dbt.yml`](../../.github/workflows/owntracks-dbt.yml) は **`0 * * * *` UTC** と **`workflow_dispatch`** |
+| **dbt**（inbox → Vault / mart） | **GitHub Actions 毎時** + 手動 | [`.github/workflows/dbt.yml`](../../.github/workflows/dbt.yml) は **`0 * * * *` UTC** と **`workflow_dispatch`**。`--select` なしで全モデル |
 | **deploy**（migrations / Edge） | push to `main` または手動 | [`.github/workflows/deploy.yml`](../../.github/workflows/deploy.yml) |
 
 **materialize 用の GitHub Actions workflow（schedule）は意図していない。** materialize は pg_cron のみ。dbt は GHA で毎時。Vault + pg_cron は `db push` で本番 DB に載る（materialize 部分は `.github/workflows/` には現れない）。
@@ -220,7 +220,7 @@ jobs:
 |------|------|
 | **local** | `supabase start`、migrations、functions serve、Storage ローカル |
 | **prod** | `supabase link` + `supabase db push` + `supabase functions deploy`（または main マージで [deploy.yml](../../.github/workflows/deploy.yml) が同等を実行） |
-| **CI** | PR: [ci.yml](../../.github/workflows/ci.yml)（ingest typecheck/test、dbt parse）；main: [deploy.yml](../../.github/workflows/deploy.yml)（`db push` + functions、**seed なし**）；dbt スケジュールは S4 の `owntracks-dbt.yml` |
+| **CI** | PR: [ci.yml](../../.github/workflows/ci.yml)（ingest typecheck/test、dbt parse）；main: [deploy.yml](../../.github/workflows/deploy.yml)（`db push` + functions、**seed なし**）；dbt スケジュールは S4 の `dbt.yml` |
 
 ### 7.1 GitHub Actions deploy（Supabase）
 
@@ -285,7 +285,7 @@ jobs:
 | **S1** | `supabase/` 初期化、migrations（V001/V002 相当）、スキーマ非露出 |
 | **S2** | Edge `owntracks-ingest` + Storage Bronze + `ops.ingest_batch` |
 | **S3** | Edge `owntracks-materialize` + Cron（pg_cron + Vault + `apikey`） |
-| **S4** | GitHub Actions `owntracks-dbt.yml`、`dbt_runner` migration、Secrets ドキュメント |
+| **S4** | GitHub Actions `dbt.yml`、`dbt_runner` migration、Secrets ドキュメント |
 | **S5** | OwnTracks 実機接続、24h 監視（batch 0 件アラートは将来） |
 
 **リポジトリから削除・更新:** `deploy/oci/systemd/*` は「レガシー / 自前ホスト用」として archive または README 注記。`docs/architecture/owntracks.md` の Tunnel / OCI 節を「Supabase 版は [supabase-runtime.md](./supabase-runtime.md)」へ誘導。
@@ -305,6 +305,6 @@ Free tier 内で開始し、容量アラートで Supabase Dashboard を見る�
 ## 11. 未決事項（実装前に 1 行で決める）
 
 1. **materialize の 1 実行あたり batch 上限**（デフォルト 20 でよいか）
-2. **dbt Cron** — **毎時 0 分 UTC**（`owntracks-dbt.yml`）
+2. **dbt Cron** — **毎時 0 分 UTC**（`dbt.yml`）
 
 デフォルト提案: batch 上限 **20**。`person_id` は送信側（OwnTracks の user、Mac 収集アプリの設定）で決まり、Storage には置かない。

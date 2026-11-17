@@ -5,7 +5,7 @@ SUPABASE_START_EXCLUDE ?= logflare,vector,realtime
 
 COMPOSE_METABASE = docker compose -f deploy/docker/docker-compose.metabase.yml
 
-.PHONY: up down migrate ingest-core-build supabase-start supabase-stop supabase-reset supabase-functions-serve dbt-parse dbt-owntracks lint test demo-owntracks demo-owntracks-edge demo-materialize-edge metabase-up metabase-down metabase-reset metabase-logs metabase-connect-remote
+.PHONY: up down migrate ingest-core-build supabase-start supabase-stop supabase-reset supabase-functions-serve dbt-parse dbt-owntracks dbt lint test demo-owntracks demo-owntracks-edge demo-materialize-edge metabase-up metabase-down metabase-reset metabase-logs metabase-connect-remote
 
 up:
 	$(COMPOSE) up -d
@@ -40,6 +40,11 @@ dbt-parse:
 dbt-owntracks:
 	cd packages/dbt && dbt build --select tag:owntracks --profiles-dir .
 
+# Whole project. The marts merge OwnTracks and Mac sources, so source-only
+# targets leave mart_person_activity_minute stale.
+dbt:
+	cd packages/dbt && dbt build --profiles-dir .
+
 lint:
 	pnpm --filter @lifelog/ingest typecheck
 
@@ -65,7 +70,7 @@ metabase-up:
 metabase-down:
 	$(COMPOSE_METABASE) down
 
-# Deletes the local H2 app database (questions and the Metabase admin user).
+# Deletes the local app database (questions and the Metabase admin user).
 metabase-reset:
 	$(COMPOSE_METABASE) down -v
 	$(COMPOSE_METABASE) up -d

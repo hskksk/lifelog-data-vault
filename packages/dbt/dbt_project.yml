@@ -33,3 +33,6 @@ models:
 
 vars:
   batch_id: null
+  # Business vault and marts drop these person ids. Raw vault keeps the history.
+  # See macros/retired_person_ids.sql.
+  retired_person_ids: ["me"]

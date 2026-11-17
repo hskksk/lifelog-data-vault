@@ -489,7 +489,7 @@ Phase 1〜3 は inbox と sat までで止めてよい。mart の器は [data-va
 |------|------|
 | コレクタ | ログイン時 + 60 分。ヘルスケアは ZIP を置いたときも |
 | materialize | 15 分。`config/sources.yml` の `materialize_interval_minutes` |
-| dbt | `dbt build --select tag:macos`。workflow は `workflow_dispatch` のみ |
+| dbt | 毎時の `dbt build`（全モデル）が Mac を含む。部分実行はローカルで `dbt build --select …` |
 | タグ | 各モデルに `macos` と、`macos_power` / `macos_screentime` / `apple_health` |
 | 障害 | `rejected` と `error` は cron の対象外。`error_message` を見て直す |
 | 欠測 | 電源もスクリーンタイムもソース側の保持が短い。エージェントを止めると穴が埋まる保証は無い |

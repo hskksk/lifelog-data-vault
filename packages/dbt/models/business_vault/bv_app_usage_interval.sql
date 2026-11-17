@@ -54,3 +54,4 @@ inner join {{ ref('hub_application') }} as application
 where sat.started_at is not null
     and sat.ended_at is not null
     and sat.ended_at > sat.started_at
+    and {{ exclude_retired_person_ids('person.person_bk') }}

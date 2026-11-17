@@ -1,4 +1,4 @@
-name: owntracks-dbt
+name: dbt
 
 on:
   # Materialize */15 is pg_cron in supabase/migrations — not a GHA workflow.
@@ -6,9 +6,9 @@ on:
     - cron: "0 * * * *"
   workflow_dispatch:
 
+# Build the whole project: the marts merge OwnTracks and Mac sources, so a
+# per-source selection cannot refresh them correctly.
 jobs:
   dbt:
     uses: ./.github/workflows/dbt-build-remote.yml
     secrets: inherit
-    with:
-      select: "+tag:owntracks +tag:macos"

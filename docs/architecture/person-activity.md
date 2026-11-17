@@ -61,6 +61,20 @@ business vault もマートも `materialized='table'` にし、実行のたび�
 
 時刻は UTC で持つ。表示のタイムゾーンは Metabase 側で決める。
 
+### 2.1 引退した person_id
+
+使わなくなった person_id（既定では `me`）は business vault と、そこから作る mart に入れない。raw vault は insert-only のまま残し、あとから監査できるようにする。
+
+| 項目 | 決め |
+|------|------|
+| 設定 | `packages/dbt/dbt_project.yml` の `vars.retired_person_ids`。一時的に変えるときは `dbt build --vars '{retired_person_ids: [me, other]}'` |
+| 除外する場所 | `bv_location_fix`、`bv_app_usage_interval`、`bv_power_interval`。`hub_person.person_bk` で判定する。`bv_location_segment` と `mart_person_activity_minute` はその結果を引き継ぐ |
+| 検証 | 各 bv モデルの `person_id` に付けた `not_retired_person_id` テスト |
+
+`mart_location_trail` は `sat_owntracks_location` をそのまま出す view で、person_id を持たない。この除外の対象外である。
+
+OwnTracks の person_id は topic の user なので、過去の `owntracks/me/...` の位置は business vault から消える。Mac の区間は、移行後にできた `hskksk` のリンク（machine / OS account）が履歴にも効くため残る。有効にする前に `raw_vault.sat_owntracks_location` の `person_id` と `tst`、`raw_vault.link_person_machine` を確認する。送信側がまだ `me` のままだと、今後の位置も消える。
+
 ## 3. 位置
 
 ### 3.1 実測と推定を分ける
