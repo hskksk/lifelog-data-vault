@@ -105,5 +105,4 @@ jobs:
     if: needs.deploy.result == 'success' && needs.changes.outputs.run_dbt == 'true'
     uses: ./.github/workflows/dbt-build-remote.yml
     secrets: inherit
-    with:
-      select: "+tag:owntracks +tag:macos"
+    # No select: rebuild the whole project after migrations.

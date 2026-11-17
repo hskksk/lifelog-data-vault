@@ -8,7 +8,7 @@
 make supabase-start
 make supabase-reset    # bi_reader / local-bi-reader
 # mart が空なら、取り込みのあと
-make dbt-owntracks      # post-hook が mart.* に SELECT を付ける
+make dbt                # 全モデル。mart_person_activity_minute まで更新
 make metabase-up        # http://127.0.0.1:3000
 ```
 

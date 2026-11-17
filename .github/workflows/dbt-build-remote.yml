@@ -1,17 +1,20 @@
 # Shared remote dbt build (Supabase session pooler + Vault dbt_runner).
-# Called from owntracks-dbt, macos-dbt, and deploy (post-migration).
+# Called from dbt (hourly/manual, whole project) and deploy (post-migration,
+# whole project). Pass `select` only for a deliberate partial build.
 name: dbt build (remote)
 
 on:
   workflow_call:
     inputs:
       select:
-        description: "dbt build --select …"
-        required: true
+        # Empty means the whole project. Use that for scheduled and deploy runs.
+        description: "dbt build --select … (empty = whole project)"
+        required: false
         type: string
+        default: ""
 
 concurrency:
-  group: owntracks-dbt
+  group: dbt-build
   cancel-in-progress: false
 
 jobs:
@@ -56,4 +59,12 @@ jobs:
 
       - name: dbt build
         working-directory: packages/dbt
-        run: dbt build --select ${{ inputs.select }} --profiles-dir . --target ci
+        env:
+          DBT_SELECT: ${{ inputs.select }}
+        run: |
+          if [ -n "${DBT_SELECT}" ]; then
+            # shellcheck disable=SC2086 # the selection is space-separated
+            dbt build --select ${DBT_SELECT} --profiles-dir . --target ci
+          else
+            dbt build --profiles-dir . --target ci
+          fi

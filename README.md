@@ -51,7 +51,7 @@ Or serve both functions: `make supabase-functions-serve` (needs `SUPABASE_SECRET
 
 ### dbt (S4 — GitHub Actions)
 
-[`.github/workflows/owntracks-dbt.yml`](.github/workflows/owntracks-dbt.yml) runs `dbt build --select tag:owntracks` on a **hourly schedule** (`0 * * * *` UTC) and via **Actions → owntracks-dbt → Run workflow**.
+[`.github/workflows/dbt.yml`](.github/workflows/dbt.yml) runs a **whole-project** `dbt build` on a **hourly schedule** (`0 * * * *` UTC) and via **Actions → dbt → Run workflow**. The marts merge OwnTracks and Mac sources, so one run owns the full DAG. For a partial build, use `--select` locally (see below).
 
 **Production setup:** [docs/operations/dbt-ci-setup.md](docs/operations/dbt-ci-setup.md)
 
@@ -73,7 +73,7 @@ dbt --version   # 1.12.x — ensure `which dbt` is the venv, not mise / Homebrew
 ```bash
 cp packages/dbt/profiles.yml.example packages/dbt/profiles.yml
 # target: supabase_local (postgres) or supabase_dbt_runner (seed sets password local-dbt-runner)
-cd packages/dbt && dbt deps && dbt build --select tag:owntracks --profiles-dir .
+cd packages/dbt && dbt deps && dbt build --profiles-dir .   # or: make dbt
 ```
 
 If startup still fails, stop cleanly and retry (migrations already applied are fine):
@@ -137,7 +137,7 @@ security add-generic-password -s lifelog-macos-ingest -a bearer -w "$MACOS_INGES
 pnpm --filter @lifelog/macos-collector exec tsx src/cli.ts run
 ```
 
-Hourly collection is an installed app, `~/Applications/Lifelog Collect.app`. The app is a single Go binary. It copies `knowledgeC.db` itself and posts power and Screen Time without node or this checkout, so editing the repo does not change the running job. Opening the app shows a settings page with the ingest URL, `person_id`, the keychain token, and a button that sends once and reports success or failure for power and Screen Time. Set `person_id` to the OwnTracks Identification user so location and Mac rows share one person. The hourly LaunchAgent passes `run`, so it does not open that page. Screen Time needs Full Disk Access on that app. `deploy/macos/collect.sh` remains a terminal helper for the TypeScript collector. Set the Edge secret `MACOS_INGEST_BEARER_TOKEN` before the collector can get a 202. dbt: Actions → **macos-dbt**, or the hourly owntracks-dbt workflow which also builds `tag:macos`.
+Hourly collection is an installed app, `~/Applications/Lifelog Collect.app`. The app is a single Go binary. It copies `knowledgeC.db` itself and posts power and Screen Time without node or this checkout, so editing the repo does not change the running job. Opening the app shows a settings page with the ingest URL, `person_id`, the keychain token, and a button that sends once and reports success or failure for power and Screen Time. Set `person_id` to the OwnTracks Identification user so location and Mac rows share one person. The hourly LaunchAgent passes `run`, so it does not open that page. Screen Time needs Full Disk Access on that app. `deploy/macos/collect.sh` remains a terminal helper for the TypeScript collector. Set the Edge secret `MACOS_INGEST_BEARER_TOKEN` before the collector can get a 202. dbt: the hourly `dbt` workflow builds the whole project (marts included).
 
 Build the app, install it under `$HOME/Applications`, and write the LaunchAgent. Reinstalling changes the ad-hoc signature, so add the app to Full Disk Access again. `config.json` and the keychain entry stay where they are.
 
