@@ -41,6 +41,7 @@ linked as (
         on person_device.device_hk = device.device_hk
     inner join {{ ref('hub_person') }} as person
         on person.person_hk = person_device.person_hk
+    where {{ exclude_retired_person_ids('person.person_bk') }}
 ),
 
 ranked as (

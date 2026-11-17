@@ -7,7 +7,7 @@ models:
       - name: location_event_hk
         tests: [not_null]
       - name: person_id
-        tests: [not_null]
+        tests: [not_null, not_retired_person_id]
       - name: device_bk
         tests: [not_null]
       - name: tst
@@ -15,6 +15,8 @@ models:
   - name: bv_location_segment
     description: One row per consecutive fix pair. position_model is significant_change_v1.
     columns:
+      - name: person_id
+        tests: [not_null, not_retired_person_id]
       - name: position_model
         tests:
           - not_null
@@ -30,6 +32,8 @@ models:
   - name: bv_power_interval
     description: Machine power state from one pmset event until the next.
     columns:
+      - name: person_id
+        tests: [not_null, not_retired_person_id]
       - name: power_state
         tests:
           - not_null
@@ -52,7 +56,7 @@ models:
       - name: usage_interval_hk
         tests: [not_null]
       - name: person_id
-        tests: [not_null]
+        tests: [not_null, not_retired_person_id]
       - name: bundle_id
         tests: [not_null]
       - name: started_at
