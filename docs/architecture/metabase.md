@@ -28,7 +28,7 @@ flowchart LR
 
 | もの | 置き場 |
 |------|--------|
-| 質問・ダッシュボード（Metabase アプリ DB） | ローカルは Compose の H2 ボリューム。常時起動するときは **Vault とは別の Postgres** |
+| 質問・ダッシュボード（Metabase アプリ DB） | ローカルは Compose の Postgres（`metabase-db`）ボリューム。常時起動するときは **Vault とは別の Postgres** |
 | 集計対象 | Supabase Postgres のスキーマ `mart`、`business_vault`、`raw_vault` |
 | 起動（手元） | [`deploy/docker/docker-compose.metabase.yml`](../../deploy/docker/docker-compose.metabase.yml)（`make metabase-up`） |
 | イメージ | `metabase/metabase:v0.64.4`（64 LTS。サポート期限 2027-12-01。`latest` は使わない） |
@@ -113,6 +113,6 @@ SQL は [セットアップ手順](../operations/metabase-setup.md) に書く。
 | `scripts/deploy.ts` | 本番 Vault upsert（任意）と sync |
 | `packages/dbt/macros/grant_mart_to_bi_reader.sql` | mart、business_vault、raw_vault の `SELECT` |
 | `packages/dbt/dbt_project.yml` | marts、business_vault、raw_vault の post-hook |
-| `deploy/docker/docker-compose.metabase.yml` | ローカル Metabase（ヒープ 2GB。起動前に残った Liquibase ロックを外す） |
+| `deploy/docker/docker-compose.metabase.yml` | ローカル Metabase（ヒープ 2GB）とアプリ DB 用 Postgres |
 | `scripts/metabase-add-remote.ts` | 本番の `mart`、`business_vault`、`raw_vault` を Metabase に登録 |
 | `Makefile` | `metabase-up` / `metabase-down` / `metabase-logs` / `metabase-connect-remote` |
