@@ -65,7 +65,7 @@ metabase-up:
 metabase-down:
 	$(COMPOSE_METABASE) down
 
-# Deletes the local H2 app database (questions and the Metabase admin user).
+# Deletes the local app database (questions and the Metabase admin user).
 metabase-reset:
 	$(COMPOSE_METABASE) down -v
 	$(COMPOSE_METABASE) up -d

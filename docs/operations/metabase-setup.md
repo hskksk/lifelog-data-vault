@@ -14,9 +14,14 @@ make metabase-up        # http://127.0.0.1:3000
 
 初回は Liquibase のマイグレーションで数分かかることがある。その間 `/api/health` は 503 で、画面はセットアップまで進まない。`make metabase-connect-remote` は 200 になるまで待つ。ブラウザは `http://127.0.0.1:3000` を開く。Docker はこのアドレスだけを公開する。止めるときは `make metabase-down`（ボリュームは残る。質問定義も残る）。ログは `make metabase-logs`。ポートを変えるときは `METABASE_PORT=3001 make metabase-up`。
 
-ログに `Database has migration lock` と出て再起動を繰り返すときは、前回の JVM がマイグレーションの途中で落ちてロックが H2 に残っている。`make metabase-up` は起動前にそのロックを外す。質問定義ごと捨ててやり直すときは `make metabase-reset`。
+アプリ DB（質問・ダッシュボード・管理者ユーザー）は、同じ compose の `metabase-db`（Postgres 16、ホストには公開しない）に保存される。Docker volume は `lifelog-metabase_metabase_db_data`。Supabase のユーザーではない。
 
-ブラウザで管理者ユーザーを作る。これは H2（Docker volume `lifelog-metabase_metabase_data`）に保存される。Supabase のユーザーではない。
+`metabase-db` のパスワードは `METABASE_DB_PASSWORD`（未設定なら `metabase`）。既存ボリュームを作ったあとに変えると接続できないので、変えるときは `make metabase-reset` でボリュームごと作り直す。ログに `Database has migration lock` が出て再起動を繰り返すときは、前回の JVM がマイグレーションの途中で落ちたままロックが残っている。次のコマンドで外す。
+
+```bash
+docker compose -f deploy/docker/docker-compose.metabase.yml exec metabase \
+  java -jar /app/metabase.jar migrate release-locks
+```
 
 **Admin → Databases → Add database**
 
@@ -120,7 +125,7 @@ Network restrictions を有効にしているプロジェクトでは、Metabase
 
 ## 3. 常時起動
 
-Compose の H2 は手元用。VM や Metabase Cloud ではアプリ DB を別 Postgres にする。ホストは Supabase ではない。
+ローカルの compose はアプリ DB 用の Postgres を内包している（手元専用）。VM や Metabase Cloud ではアプリ DB を別 Postgres にする。ホストは Supabase ではない。
 
 ```text
 MB_DB_TYPE=postgres
