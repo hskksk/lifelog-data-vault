@@ -8,6 +8,8 @@
 - Docker / Docker Compose
 - dbt プロファイル: `cp packages/dbt/profiles.yml.example packages/dbt/profiles.yml`（`bi_reader` 出力を含む）
 
+**Apple Silicon (arm64):** Lightdash の公式イメージは **amd64 のみ**。Compose は `platform: linux/amd64` でエミュレーション起動する。`no matching manifest for linux/arm64` が出たら、Docker Desktop → Settings → General で **Use Rosetta for x86_64/amd64 emulation on Apple Silicon** を有効にしてから `make lightdash-up` をやり直す（初回 pull は数 GB・数分かかることがある）。
+
 ## 1. ローカル Lightdash
 
 `.env` に任意で次を書ける（未設定でも起動する既定値あり）。
@@ -82,3 +84,4 @@ Network restrictions がある場合は Lightdash ホスト IP を許可する�
 | Compile 失敗（profiles） | ホストで `packages/dbt/profiles.yml` があり、`bi_reader` が `host.docker.internal:54422` を指すか |
 | モデルが空 | `dbt build` 後、Lightdash で Sync dbt / Compile |
 | ヘルスチェック失敗 | `make lightdash-logs`。初回マイグレーション待ち |
+| `no matching manifest for linux/arm64` | 上記 Apple Silicon の Rosetta 設定。compose の `platform: linux/amd64` が入っているか確認 |

@@ -3,6 +3,9 @@
 # Mounts packages/dbt at /usr/app/dbt (read-only). Copy profiles.yml from profiles.yml.example
 # with target bi_reader before compiling in the UI.
 # See docs/operations/lightdash-setup.md.
+#
+# lightdash/lightdash publishes linux/amd64 only. On Apple Silicon, Docker runs it
+# under emulation (Docker Desktop: Settings → General → “Use Rosetta for … amd64”).
 
 name: lifelog-lightdash
 
@@ -35,6 +38,7 @@ services:
       MINIO_EXPIRATION_DAYS: "1"
 
   headless-browser:
+    platform: linux/amd64
     image: browserless/chrome:1.61-chrome-stable
     restart: unless-stopped
     environment:
@@ -42,6 +46,7 @@ services:
       MAX_CONCURRENT_SESSIONS: "2"
 
   lightdash:
+    platform: linux/amd64
     image: lightdash/lightdash:3.350.1
     restart: unless-stopped
     depends_on:
