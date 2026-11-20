@@ -1,6 +1,6 @@
 # Metabase（BI）
 
-関連: [supabase-runtime.md](./supabase-runtime.md), [overview.md](./overview.md), [owntracks.md](./owntracks.md)
+関連: [supabase-runtime.md](./supabase-runtime.md), [overview.md](./overview.md), [owntracks.md](./owntracks.md), [lightdash.md](./lightdash.md)（dbt メトリクス BI）
 
 手順: [../operations/metabase-setup.md](../operations/metabase-setup.md)
 

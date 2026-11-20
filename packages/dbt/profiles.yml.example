@@ -41,3 +41,13 @@ lifelog_vault:
       sslmode: "{{ env_var('DBT_PG_SSLMODE') }}"
       schema: staging
       threads: 2
+    # Lightdash in Docker (make lightdash-up): session pooler from the container.
+    bi_reader:
+      type: postgres
+      host: host.docker.internal
+      user: bi_reader
+      password: local-bi-reader
+      port: 54422
+      dbname: postgres
+      schema: mart
+      threads: 1

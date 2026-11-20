@@ -10,7 +10,8 @@
     "resolve-dbt-db-url": "tsx scripts/resolve-dbt-db-url.ts",
     "resolve-dbt-connection": "tsx scripts/resolve-dbt-connection.ts",
     "test:bi-connection": "tsx scripts/lib/bi-connection.test.ts && tsx scripts/lib/metabase-remote.test.ts",
-    "metabase-connect-remote": "tsx scripts/metabase-add-remote.ts"
+    "metabase-connect-remote": "tsx scripts/metabase-add-remote.ts",
+    "lightdash-print-warehouse": "tsx scripts/lightdash-print-warehouse.ts"
   },
   "devDependencies": {
     "dotenv": "^16.4.7",

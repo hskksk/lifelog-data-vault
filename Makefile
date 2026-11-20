@@ -4,8 +4,9 @@ SUPABASE ?= npx --yes supabase@2.122.0
 SUPABASE_START_EXCLUDE ?= logflare,vector,realtime
 
 COMPOSE_METABASE = docker compose -f deploy/docker/docker-compose.metabase.yml
+COMPOSE_LIGHTDASH = docker compose -f deploy/docker/docker-compose.lightdash.yml
 
-.PHONY: up down migrate ingest-core-build supabase-start supabase-stop supabase-reset supabase-functions-serve dbt-parse dbt-owntracks dbt lint test demo-owntracks demo-owntracks-edge demo-materialize-edge metabase-up metabase-down metabase-reset metabase-logs metabase-connect-remote
+.PHONY: up down migrate ingest-core-build supabase-start supabase-stop supabase-reset supabase-functions-serve dbt-parse dbt-owntracks dbt lint test demo-owntracks demo-owntracks-edge demo-materialize-edge metabase-up metabase-down metabase-reset metabase-logs metabase-connect-remote lightdash-up lightdash-down lightdash-reset lightdash-logs lightdash-print-warehouse
 
 up:
 	$(COMPOSE) up -d
@@ -80,6 +81,23 @@ metabase-logs:
 
 metabase-connect-remote:
 	pnpm metabase-connect-remote
+
+lightdash-up:
+	$(COMPOSE_LIGHTDASH) up -d
+
+lightdash-down:
+	$(COMPOSE_LIGHTDASH) down
+
+# Deletes the local app database (Lightdash org, users, saved charts).
+lightdash-reset:
+	$(COMPOSE_LIGHTDASH) down -v
+	$(COMPOSE_LIGHTDASH) up -d
+
+lightdash-logs:
+	$(COMPOSE_LIGHTDASH) logs -f lightdash
+
+lightdash-print-warehouse:
+	pnpm lightdash-print-warehouse
 
 demo-materialize-edge:
 	bash -lc 'set -a; [ -f .env ] && . ./.env; set +a; \
