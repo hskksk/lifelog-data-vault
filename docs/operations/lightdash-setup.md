@@ -63,7 +63,20 @@ pnpm lightdash-print-warehouse
 pnpm lightdash-print-warehouse --print-yaml > /tmp/profiles-bi-reader-snippet.yml
 ```
 
-3. Lightdash の Warehouse 画面に Host / Port / User / Password / SSL require を入れる。スキーマは `mart` を主にし、必要なら `business_vault` / `raw_vault` も許可。
+3. **Warehouse（グラフ・Explore のクエリはここが効く。CLI の `NODE_TLS_*` は deploy 時だけ）**
+
+   | フィールド | 値 |
+   |------------|-----|
+   | Host / Port | session pooler `….pooler.supabase.com` / `5432` |
+   | User / Password | `bi_reader.<project-ref>` / Vault |
+   | SSL mode | **`no-verify`**（推奨・手早い）または **`verify-full`** + **SSL root certificate** に Dashboard の CA をアップロード |
+   | SSL mode `require` だけ | 多くの場合チャート時に **self-signed certificate in certificate chain** のまま |
+
+   変更後: **Test connection** → 保存 → チャートを開き直す。
+
+   **自己ホスト Lightdash（`make lightdash-up`）で hosted 倉庫** なら、CA を `deploy/docker/lightdash/certs/supabase-ca.pem` に置き `.env` に `NODE_EXTRA_CA_CERTS=/certs/supabase-ca.pem` を足して `make lightdash-up` し直す（UI は `no-verify` か `verify-full`+CA）。
+
+   **本番 VM 上の Lightdash** なら、そのプロセスの環境に `NODE_EXTRA_CA_CERTS=...` を入れるか、UI で **`no-verify`**。
 4. dbt ソースは次のどちらか（**個人 lifelog なら A が簡単**）。
 
 ### 2.1 dbt を GitHub から取る（本番）
@@ -171,7 +184,7 @@ NODE_EXTRA_CA_CERTS="$SUPABASE_DB_SSLROOTCERT" \
 - Dashboard から **別プロジェクト用**の CA を入れていないか確認
 - pooler ホスト（`aws-0-….pooler.supabase.com`）と profiles の `host` が一致しているか
 - Nix 等で `NIX_SSL_CERT_FILE` を使っている場合、**Supabase CA だけ**の `NODE_EXTRA_CA_CERTS` にして再試行（システム束と競合することがある）
-- deploy を通すだけなら **Lightdash UI** の warehouse を **`no-verify`** にし、CLI は **`lightdash login` 先の本番**向けに `deploy`（倉庫検証を UI 側に任せる）。あるいは一時的 `NODE_TLS_REJECT_UNAUTHORIZED=0`（非推奨・短命）
+- **`NODE_TLS_REJECT_UNAUTHORIZED=0`** は **CLI deploy の一瞬だけ**有効。グラフは **Warehouse の SSL mode**（上記 §2）か **Lightdash サーバー本体**の `NODE_EXTRA_CA_CERTS` で直す
 
 dbt / `_marts.yml` を変えたあと本番 Lightdash を更新するたびに、同じ `deploy` を再実行する（Git の **Refresh** は CLI プロジェクトでは使わない）。
 

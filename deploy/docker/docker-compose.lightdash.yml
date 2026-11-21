@@ -58,6 +58,9 @@ services:
       - "127.0.0.1:${LIGHTDASH_PORT:-8081}:8080"
     volumes:
       - ../../packages/dbt:/usr/app/dbt:ro
+      # Optional hosted Supabase warehouse: copy CA to deploy/docker/lightdash/certs/supabase-ca.pem
+      # and set LIGHTDASH_WAREHOUSE_CA=1 in .env (see lightdash-setup.md).
+      - ./lightdash/certs:/certs:ro
     environment:
       PGHOST: lightdash-db
       PGPORT: "5432"
@@ -85,6 +88,9 @@ services:
       HEADWAY_ENABLED: "false"
       RUDDERSTACK_ANALYTICS_DISABLED: "true"
       AI_COPILOT_ENABLED: "false"
+      # Chart/query TLS to a hosted Supabase warehouse (not your laptop's deploy-time NODE_TLS_*).
+      # Set NODE_EXTRA_CA_CERTS=/certs/supabase-ca.pem in .env when that file exists under lightdash/certs/.
+      NODE_EXTRA_CA_CERTS: ${NODE_EXTRA_CA_CERTS:-}
     extra_hosts:
       - "host.docker.internal:host-gateway"
     healthcheck:

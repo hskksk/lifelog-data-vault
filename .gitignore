@@ -16,6 +16,8 @@ packages/dbt/logs/
 packages/dbt/profiles.yml
 packages/dbt/*.crt
 packages/dbt/*.cer
+deploy/docker/lightdash/certs/*
+!deploy/docker/lightdash/certs/.gitkeep
 .DS_Store
 deploy/macos/lifelog-macos-collect
 *.log
