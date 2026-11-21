@@ -25,7 +25,7 @@ jobs:
     outputs:
       run_dbt: ${{ steps.decide.outputs.run_dbt }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
@@ -76,7 +76,7 @@ jobs:
       BI_READER_PASSWORD: ${{ secrets.BI_READER_PASSWORD }}
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - uses: hskksk/gh-actions/actions/setup-mise@v1
 
