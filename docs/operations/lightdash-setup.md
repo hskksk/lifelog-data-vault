@@ -107,6 +107,26 @@ Lightdash サーバー側に GitHub App を置かなくてよい。dbt write-bac
 
 Network restrictions がある場合は Lightdash ホスト IP を許可する。
 
+### 2.2 Semantic layer connection = CLI（GitHub 不要）
+
+プロジェクト設定で dbt 接続を **CLI** にすると、GitHub OAuth / PAT は不要。手元（または CI）から manifest を送る。
+
+**CLI の入れ方（mise aqua を避ける）:** このリポジトリの `.mise.toml` に Lightdash は入っていない。`lightdash` を mise の aqua で入れていると、実行のたびに registry 更新が走り失敗することがある。**npm / npx を使う**。
+
+```bash
+cd packages/dbt
+cp profiles.yml.example profiles.yml   # 未作成なら
+# 本番倉庫へ deploy するときは profiles の target を bi_reader（session pooler）に合わせる
+
+npx --yes @lightdash/cli@3.350.1 login https://<LightdashのSITE_URL>
+npx --yes @lightdash/cli@3.350.1 deploy --create --profiles-dir . --project-dir .
+# 既存プロジェクトへ: deploy --project <uuid>（--create なし）
+```
+
+`login` はブラウザまたは PAT。deploy は **手元の `profiles.yml` とカレントの dbt ファイル**を使う（未コミット変更も含む）。`dbt` コマンドが PATH にあること（venv の `dbt` を推奨、[dbt-ci-setup.md](./dbt-ci-setup.md) と同じ 1.12 系）。
+
+dbt / `_marts.yml` を変えたあと本番 Lightdash を更新するたびに、同じ `deploy` を再実行する（Git の **Refresh** は CLI プロジェクトでは使わない）。
+
 ## 3. Metabase との併用
 
 | 項目 | 目安 |
@@ -125,3 +145,13 @@ Network restrictions がある場合は Lightdash ホスト IP を許可する�
 | ヘルスチェック失敗 | `make lightdash-logs`。初回マイグレーション待ち |
 | `no matching manifest for linux/arm64` | 上記 Apple Silicon の Rosetta 設定。compose の `platform: linux/amd64` が入っているか確認 |
 | OAuth 後 `github-proxy-dev.onrender.com` + `missing parameter` | セルフホストに GitHub App 未設定。§2.1 **A（PAT）** か **B（GitHub App + `GITHUB_REDIRECT_DOMAIN`）** に切り替え |
+| `lightdash deploy` 前に mise + `aqua-registry` / `origin does not appear to be a git repository` | Lightdash 本体のエラーではない。**mise の aqua レジストリキャッシュが壊れている**。§2.2 の `npx @lightdash/cli` を使うか、キャッシュを削除して mise を直す（下記） |
+
+**mise aqua キャッシュの修復（任意）:**
+
+```bash
+rm -rf ~/Library/Caches/mise/aqua-registry
+mise install   # または最初に失敗した aqua ツールを再 install
+```
+
+別案: `brew install node` 経由で `npm i -g @lightdash/cli`、または毎回 `npx` のみ（グローバル不要）。
