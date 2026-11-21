@@ -4,8 +4,9 @@ SUPABASE ?= npx --yes supabase@2.122.0
 SUPABASE_START_EXCLUDE ?= logflare,vector,realtime
 
 COMPOSE_METABASE = docker compose -f deploy/docker/docker-compose.metabase.yml
+COMPOSE_LIGHTDASH = docker compose -f deploy/docker/docker-compose.lightdash.yml
 
-.PHONY: up down migrate ingest-core-build supabase-start supabase-stop supabase-reset supabase-functions-serve dbt-parse dbt-owntracks dbt lint test demo-owntracks demo-owntracks-edge demo-materialize-edge metabase-up metabase-down metabase-reset metabase-logs metabase-connect-remote
+.PHONY: up down migrate ingest-core-build supabase-start supabase-stop supabase-reset supabase-functions-serve dbt-parse dbt-owntracks dbt lint test demo-owntracks demo-owntracks-edge demo-materialize-edge metabase-up metabase-down metabase-reset metabase-logs metabase-connect-remote lightdash-up lightdash-down lightdash-reset lightdash-logs lightdash-print-warehouse lightdash-deploy-local
 
 up:
 	$(COMPOSE) up -d
@@ -80,6 +81,40 @@ metabase-logs:
 
 metabase-connect-remote:
 	pnpm metabase-connect-remote
+
+lightdash-up:
+	$(COMPOSE_LIGHTDASH) up -d
+
+lightdash-down:
+	$(COMPOSE_LIGHTDASH) down
+
+# Deletes the local app database (Lightdash org, users, saved charts).
+lightdash-reset:
+	$(COMPOSE_LIGHTDASH) down -v
+	$(COMPOSE_LIGHTDASH) up -d
+
+lightdash-logs:
+	$(COMPOSE_LIGHTDASH) logs -f lightdash
+
+lightdash-print-warehouse:
+	pnpm lightdash-print-warehouse
+
+# CLI deploy to local Lightdash (http://127.0.0.1:8081). Run lightdash login once first.
+LIGHTDASH_CLI ?= npx --yes @lightdash/cli@3.350.1
+lightdash-deploy-local:
+	cd packages/dbt && $(LIGHTDASH_CLI) deploy \
+	  --profiles-dir . --project-dir . \
+	  --target bi_reader_local \
+	  --selector lightdash
+
+# Hosted warehouse: profiles sslrootcert is for dbt (Python). Lightdash CLI (Node) needs NODE_EXTRA_CA_CERTS.
+lightdash-deploy-hosted:
+	bash -lc 'test -n "$$SUPABASE_DB_SSLROOTCERT" && test -f "$$SUPABASE_DB_SSLROOTCERT" || { \
+	  echo "Set SUPABASE_DB_SSLROOTCERT to the Supabase CA file (Dashboard → Database → SSL Configuration)." >&2; exit 1; }; \
+	  cd packages/dbt && NODE_EXTRA_CA_CERTS="$$SUPABASE_DB_SSLROOTCERT" $(LIGHTDASH_CLI) deploy \
+	    --profiles-dir . --project-dir . \
+	    --target bi_reader_hosted \
+	    --selector lightdash'
 
 demo-materialize-edge:
 	bash -lc 'set -a; [ -f .env ] && . ./.env; set +a; \

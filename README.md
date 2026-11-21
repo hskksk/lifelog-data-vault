@@ -12,7 +12,7 @@ Personal lifelog data platform using **Data Vault 2.0** patterns: Bronze object 
 | Transform | dbt Core (outside Supabase) |
 | Ingest (prod) | Supabase Edge Functions |
 | Ingest (local dev) | TypeScript `@lifelog/ingest` Hono server |
-| BI | Metabase, read-only `bi_reader` on schema `mart` |
+| BI | Metabase (explore / maps) + Lightdash (dbt metrics); read-only `bi_reader` on `mart`, `business_vault`, `raw_vault` |
 | CI | GitHub Actions |
 
 ## Quick start (local Supabase)
@@ -96,6 +96,17 @@ make metabase-up   # http://127.0.0.1:3000
 ```
 
 In Metabase, connect to `host.docker.internal:54422`, database `postgres`, user `bi_reader`, schemas `mart`, `business_vault`, and `raw_vault`. To add the hosted database on that same Metabase, set `SUPABASE_DB_PASSWORD`, `SUPABASE_PROJECT_REF`, and `METABASE_EMAIL` / `METABASE_PASSWORD` (or `METABASE_API_KEY`), then `make metabase-connect-remote`. That uses the session pooler as `bi_reader.<project-ref>` (Vault `bi_reader_password`; seed does not run on prod).
+
+### Lightdash (dbt BI)
+
+Design: [docs/architecture/lightdash.md](docs/architecture/lightdash.md). Setup: [docs/operations/lightdash-setup.md](docs/operations/lightdash-setup.md).
+
+```bash
+cp packages/dbt/profiles.yml.example packages/dbt/profiles.yml   # includes bi_reader target
+make lightdash-up   # http://127.0.0.1:8081
+```
+
+Point the Lightdash warehouse at `host.docker.internal:54422`, user `bi_reader`, password `local-bi-reader`, dbt path `/usr/app/dbt`, target `bi_reader`. For hosted Supabase, `make lightdash-print-warehouse` prints session-pooler settings (same Vault secret as Metabase).
 
 ### Legacy Docker Postgres
 

@@ -1,7 +1,9 @@
 import assert from "node:assert/strict";
 import {
+  BI_SCHEMA_FILTER,
   REMOTE_MART_DATABASE_NAME,
   biReaderConnectionFromPostgresPooler,
+  lightdashBiReaderProfilesYaml,
   metabaseRemoteDatabasePayload,
 } from "./bi-connection.ts";
 
@@ -31,7 +33,13 @@ assert.equal(payload.details.password, "p@ss/word+");
 assert.equal(payload.details.ssl, true);
 assert.equal(payload.details["ssl-mode"], "require");
 assert.equal(payload.details["schema-filters-type"], "inclusion");
-assert.equal(payload.details["schema-filters-patterns"], "mart,business_vault,raw_vault");
+assert.equal(payload.details["schema-filters-patterns"], BI_SCHEMA_FILTER);
 assert.equal(payload.details["tunnel-enabled"], false);
+
+const yaml = lightdashBiReaderProfilesYaml(conn);
+assert.match(yaml, /target: bi_reader_hosted/);
+assert.match(yaml, /sslmode: require/);
+assert.match(yaml, /sslrootcert:/);
+assert.match(yaml, /user: "bi_reader\.abcdefghijklmnop"/);
 
 console.log("bi-connection.test.ts ok");

@@ -1,0 +1,105 @@
+version: 2
+
+models:
+  - name: mart_location_trail
+    description: OwnTracks location fixes exposed for BI (satellite columns).
+    config:
+      meta:
+        label: Location trail
+    columns:
+      - name: location_event_hk
+        description: Surrogate key for the location event.
+        tests:
+          - not_null
+          - unique
+      - name: tst
+        description: Fix time (timestamptz, UTC).
+        config:
+          meta:
+            dimension:
+              type: timestamp
+              time_intervals: [DAY, WEEK, MONTH]
+            metrics:
+              location_fix_count:
+                type: count
+                label: Location fixes
+      - name: lat
+        config:
+          meta:
+            dimension:
+              type: number
+      - name: lon
+        config:
+          meta:
+            dimension:
+              type: number
+      - name: tid
+        config:
+          meta:
+            dimension:
+              type: string
+      - name: trigger_code
+        config:
+          meta:
+            dimension:
+              type: string
+      - name: accuracy_m
+        config:
+          meta:
+            dimension:
+              type: number
+
+  - name: mart_person_activity_minute
+    description: Minute spine for person activity (location, power, Mac apps).
+    config:
+      meta:
+        label: Person activity (minute)
+    columns:
+      - name: person_id
+        tests:
+          - not_null
+        config:
+          meta:
+            dimension:
+              type: string
+            metrics:
+              minute_row_count:
+                type: count
+                label: Minute rows
+      - name: minute_at
+        tests:
+          - not_null
+        config:
+          meta:
+            dimension:
+              type: timestamp
+              time_intervals: [DAY, WEEK, MONTH]
+      - name: lat
+        config:
+          meta:
+            dimension:
+              type: number
+      - name: lon
+        config:
+          meta:
+            dimension:
+              type: number
+      - name: location_ambiguous
+        config:
+          meta:
+            dimension:
+              type: boolean
+      - name: power_state
+        config:
+          meta:
+            dimension:
+              type: string
+      - name: app_count
+        config:
+          meta:
+            dimension:
+              type: number
+            metrics:
+              total_app_minutes:
+                type: sum
+                label: Sum of app counts (minutes)

@@ -1,0 +1,6 @@
+selectors:
+  - name: lightdash
+    description: Marts only for Lightdash (raw_vault has no column YAML).
+    definition:
+      method: path
+      value: models/marts
