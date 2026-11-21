@@ -41,13 +41,13 @@ importers:
         version: 3.1169.0
       '@hono/node-server':
         specifier: ^1.14.0
-        version: 1.19.17(hono@4.13.18)
+        version: 1.19.17(hono@4.13.19)
       '@lifelog/ingest-core':
         specifier: workspace:*
         version: link:../ingest-core
       hono:
-        specifier: ^4.13.18
-        version: 4.13.18
+        specifier: ^4.13.19
+        version: 4.13.19
       pg:
         specifier: ^8.13.0
         version: 8.23.1
@@ -800,8 +800,8 @@ packages:
     resolution: {integrity: sha512-uKmdPc+DuarnR+XqZxEuWOMw7KzzKROrx3MLeJpFnMOs78S9M5eZ+X5RieS9UcSFQqbeXzbfWuX/W9Pyajinqw==}
     engines: {node: '>=4', npm: '>=3', yarn: '>=1.3.0'}
 
-  hono@4.13.18:
-    resolution: {integrity: sha512-H9q/E1XizaWstJxUW881dmLxEj+t/TrGGnyxINkm4+sK0qUwsMtFdo2BWI9Vs3cIS19MU6b6iCijoUoEf4f3DA==}
+  hono@4.13.19:
+    resolution: {integrity: sha512-KmXvQAXwcAHV+muzbIwoJ23niEB5nMoDVr9WcRkU8mvjUECm/1+7v4Jgp7P7a+H6MLFrh+vXrGonGrGS+RQfkA==}
     engines: {node: '>=16.9.0'}
 
   joycon@3.1.1:
@@ -1465,9 +1465,9 @@ snapshots:
   '@esbuild/win32-x64@0.28.2':
     optional: true
 
-  '@hono/node-server@1.19.17(hono@4.13.18)':
+  '@hono/node-server@1.19.17(hono@4.13.19)':
     dependencies:
-      hono: 4.13.18
+      hono: 4.13.19
 
   '@jridgewell/gen-mapping@0.3.13':
     dependencies:
@@ -1779,7 +1779,7 @@ snapshots:
 
   h3-js@4.5.0: {}
 
-  hono@4.13.18: {}
+  hono@4.13.19: {}
 
   joycon@3.1.1: {}
 
