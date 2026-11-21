@@ -120,6 +120,27 @@ Lightdash サーバー側に GitHub App を置かなくてよい。dbt write-bac
 
 Network restrictions がある場合は Lightdash ホスト IP を許可する。
 
+### 2.3 本番 SSL の適用（3 か所）
+
+Supabase pooler 用 CA は **Dashboard → Database → SSL Configuration → Download** で 1 回取得する（拡張子 `.crt` / `.cer` でよい。中身が `-----BEGIN CERTIFICATE-----` ならそのまま PEM）。**本番サーバーにコピー**し、git には入れない。
+
+| か所 | 誰が繋ぐか | おすすめ（本番） | 設定 |
+|------|------------|------------------|------|
+| **A. Lightdash UI → Warehouse** | グラフ・Explore・スケジューラ | **verify-full** + **SSL root certificate** に同じ CA ファイルをアップロード | Project settings → Warehouse。`require` だけは不可。個人用途の簡易策は **`no-verify`**（暗号化のみ・MITM 耐性は弱い） |
+| **B. Lightdash サーバー本体** | 上と同じ Node ランタイム | CA をマウントし **`NODE_EXTRA_CA_CERTS=/path/to/supabase-ca.pem`** | Docker: `deploy/docker/lightdash/certs/supabase-ca.pem` + compose の env（[docker-compose.lightdash.yml](../../deploy/docker/docker-compose.lightdash.yml)）。VM/systemd も同様に Lightdash プロセスにだけ渡す。`NODE_TLS_REJECT_UNAUTHORIZED=0` は本番で常時使わない |
+| **C. 手元 / CI の `lightdash deploy`** | deploy 時の dbt + 倉庫疎通 | `profiles.yml` の **`bi_reader_hosted`**: `sslmode: require` + **`sslrootcert` 絶対パス** | 同じ CA。`NODE_EXTRA_CA_CERTS=同パス` を deploy コマンドに付ける（dbt と Node の両方） |
+
+**手順例（正式運用・B + A + C）**
+
+1. 本番 Lightdash ホストに `/etc/lightdash/supabase-ca.pem`（権限 644 程度）を置く。
+2. Lightdash コンテナ／サービスを再起動: `NODE_EXTRA_CA_CERTS=/etc/lightdash/supabase-ca.pem`（Compose ならホストを `lightdash/certs/` にマウントして `/certs/supabase-ca.pem` でも可）。
+3. UI Warehouse: session pooler、`bi_reader.<ref>`、**SSL `verify-full`**、**SSL root certificate** で同ファイルを指定 → Test connection。
+4. 開発マシン: `profiles.yml` の `sslrootcert` をそのマシン上の CA パスに。deploy は `NODE_EXTRA_CA_CERTS=... npx @lightdash/cli@3.350.1 deploy ... --target bi_reader_hosted --selector lightdash`。
+
+**動作確認:** リポ root で `pnpm verify-bi-reader-ssl`（pooler と CA の openssl 検証）。グラフは UI の Test connection 後に試す。
+
+Metabase 本番は JDBC の `sslmode=require` だけで通ることが多いが、Lightdash は **Node の検証**が厳しいため上記 A+B がセットになる。
+
 ### 2.2 Semantic layer connection = CLI（GitHub 不要）
 
 プロジェクト設定で dbt 接続を **CLI** にすると、GitHub OAuth / PAT は不要。手元（または CI）から manifest を送る。
