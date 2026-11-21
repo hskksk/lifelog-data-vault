@@ -68,3 +68,6 @@ Metabase と同様、**Session pooler 5432**。Transaction pooler（6543）は�
 | `scripts/lightdash-print-warehouse.ts` | 本番倉庫接続の JSON / profiles 断片 |
 | `scripts/lib/bi-connection.ts` | 倉庫スキーマ一覧・Metabase / Lightdash 共用 |
 | `Makefile` | `lightdash-up` / `down` / `reset` / `logs` / `lightdash-print-warehouse` |
+| `deploy/docker/lightdash/github-app.env.example` | 本番 GitHub OAuth 用環境変数テンプレート |
+
+本番で Organization の GitHub OAuth を使う場合だけ GitHub App が要る。dbt 同期だけならプロジェクト作成時の **PAT** で足りる（[lightdash-setup.md §2.1](../operations/lightdash-setup.md)）。

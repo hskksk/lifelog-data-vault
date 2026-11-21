@@ -64,7 +64,46 @@ pnpm lightdash-print-warehouse --print-yaml > /tmp/profiles-bi-reader-snippet.ym
 ```
 
 3. Lightdash の Warehouse 画面に Host / Port / User / Password / SSL require を入れる。スキーマは `mart` を主にし、必要なら `business_vault` / `raw_vault` も許可。
-4. dbt 接続は **GitHub** タイプ（`repository` + `branch` + `project_sub_path: packages/dbt`）か、デプロイ VM でリポジトリをマウントする。
+4. dbt ソースは次のどちらか（**個人 lifelog なら A が簡単**）。
+
+### 2.1 dbt を GitHub から取る（本番）
+
+#### A. プロジェクト作成で Personal Access Token（おすすめ）
+
+Organization の **Connect GitHub（OAuth）** は使わない。プロジェクト新規作成フローで:
+
+1. **Git connection** → **GitHub**
+2. 認証は **Personal access token**（Classic で `repo`、または fine-grained で当リポジトリ read）
+3. Repository: `hskksk/lifelog-data-vault`（実際の owner/repo）
+4. Branch: `main`（追従させたいブランチ）
+5. Project directory: `packages/dbt`
+
+Lightdash サーバー側に GitHub App を置かなくてよい。dbt write-back（PR 作成）が要らなければこれで足りる。
+
+#### B. Organization の GitHub OAuth（GitHub App 必須）
+
+**Settings → Integrations → GitHub** の OAuth や、UI が推奨する「OAuth で接続」は、セルフホストでは **自分用の GitHub App** と環境変数がないと動かない。未設定のとき、コールバックが Lightdash 社の開発用プロキシ `github-proxy-dev.onrender.com` に飛び、`Bad request: missing parameter` になりやすい（スクリーンショットの URL）。
+
+手順（要約）:
+
+1. GitHub で **New GitHub App**（[公式手順](https://docs.lightdash.com/self-host/customize-deployment/configure-github-for-lightdash)）
+2. **Callback URL**（GitHub App 側）: `https://<あなたの公開ホスト名>/api/v1/github/oauth/callback`  
+   ※ `github-proxy-dev.onrender.com` は **登録しない**
+3. Lightdash プロセスに渡す（テンプレート: [`deploy/docker/lightdash/github-app.env.example`](../../deploy/docker/lightdash/github-app.env.example)）:
+
+   | 変数 | 内容 |
+   |------|------|
+   | `GITHUB_APP_NAME` / `GITHUB_APP_ID` / `GITHUB_CLIENT_ID` / `GITHUB_CLIENT_SECRET` | App 設定から |
+   | `GITHUB_PRIVATE_KEY` | 秘密鍵 PEM の **base64 1 行** |
+   | `GITHUB_REDIRECT_DOMAIN` | ホスト名のみ（例 `bi.example.com`。`https://` は付けない） |
+   | `SITE_URL` | ユーザーが開く URL 全体（例 `https://bi.example.com`） |
+   | `TRUST_PROXY` / `SECURE_COOKIES` | リバースプロキシの前なら通常 `true` |
+
+4. 環境変数を入れたあと Lightdash を再起動し、Organization から GitHub 接続をやり直す。
+
+#### C. VM 上で dbt ディレクトリをマウント（Git 不要）
+
+本番 VM でローカルと同様 `packages/dbt` を `/usr/app/dbt` にマウントし、GitHub 連携は使わない。pull / deploy のたびにホストで `git pull` して Lightdash で Compile。
 
 Network restrictions がある場合は Lightdash ホスト IP を許可する。
 
@@ -85,3 +124,4 @@ Network restrictions がある場合は Lightdash ホスト IP を許可する�
 | モデルが空 | `dbt build` 後、Lightdash で Sync dbt / Compile |
 | ヘルスチェック失敗 | `make lightdash-logs`。初回マイグレーション待ち |
 | `no matching manifest for linux/arm64` | 上記 Apple Silicon の Rosetta 設定。compose の `platform: linux/amd64` が入っているか確認 |
+| OAuth 後 `github-proxy-dev.onrender.com` + `missing parameter` | セルフホストに GitHub App 未設定。§2.1 **A（PAT）** か **B（GitHub App + `GITHUB_REDIRECT_DOMAIN`）** に切り替え |
