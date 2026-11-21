@@ -114,7 +114,7 @@ lightdash-deploy-hosted:
 	  cd packages/dbt && NODE_EXTRA_CA_CERTS="$$SUPABASE_DB_SSLROOTCERT" $(LIGHTDASH_CLI) deploy \
 	    --profiles-dir . --project-dir . \
 	    --target bi_reader_hosted \
-	    --selector lightdash "$$@"' -- $(filter-out $@,$(MAKECMDGOALS))
+	    --selector lightdash'
 
 demo-materialize-edge:
 	bash -lc 'set -a; [ -f .env ] && . ./.env; set +a; \
