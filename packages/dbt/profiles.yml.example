@@ -41,6 +41,17 @@ lifelog_vault:
       sslmode: "{{ env_var('DBT_PG_SSLMODE') }}"
       schema: staging
       threads: 2
+    # Lightdash CLI deploy from the host (make supabase-reset): no SSL on local Supabase.
+    bi_reader_local:
+      type: postgres
+      host: 127.0.0.1
+      user: bi_reader
+      password: local-bi-reader
+      port: 54422
+      dbname: postgres
+      schema: mart
+      threads: 1
+      sslmode: disable
     # Lightdash in Docker (make lightdash-up): session pooler from the container.
     bi_reader:
       type: postgres
@@ -49,5 +60,17 @@ lifelog_vault:
       password: local-bi-reader
       port: 54422
       dbname: postgres
+      schema: mart
+      threads: 1
+      sslmode: disable
+    # Hosted session pooler (paste from: pnpm lightdash-print-warehouse --print-yaml)
+    bi_reader_hosted:
+      type: postgres
+      host: REPLACE_ME.pooler.supabase.com
+      user: bi_reader.REPLACE_ME
+      password: REPLACE_ME
+      port: 5432
+      dbname: postgres
+      sslmode: require
       schema: mart
       threads: 1

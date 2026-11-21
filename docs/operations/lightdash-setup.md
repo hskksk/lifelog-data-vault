@@ -115,15 +115,27 @@ Network restrictions がある場合は Lightdash ホスト IP を許可する�
 
 ```bash
 cd packages/dbt
-cp profiles.yml.example profiles.yml   # 未作成なら
-# 本番倉庫へ deploy するときは profiles の target を bi_reader（session pooler）に合わせる
+cp profiles.yml.example profiles.yml   # bi_reader_local を含む
+source ../../.venv-dbt/bin/activate      # dbt 1.12.x（1.13 や mise の dbt は使わない）
+dbt --version                            # 1.12.* であること
 
-npx --yes @lightdash/cli@3.350.1 login https://<LightdashのSITE_URL>
-npx --yes @lightdash/cli@3.350.1 deploy --create --profiles-dir . --project-dir .
-# 既存プロジェクトへ: deploy --project <uuid>（--create なし）
+npx --yes @lightdash/cli@3.350.1 login http://127.0.0.1:8081   # 本番は SITE_URL
+
+# 初回プロジェクト作成（@3.350.1 を必ず付ける。未指定だと CLI 1.x になりサーバ 3.x と不整合）
+npx --yes @lightdash/cli@3.350.1 deploy --create \
+  --profiles-dir . --project-dir . \
+  --target bi_reader_local \
+  --selector lightdash
+
+# 2 回目以降: --create を外し、必要なら --project <uuid>
 ```
 
-`login` はブラウザまたは PAT。deploy は **手元の `profiles.yml` とカレントの dbt ファイル**を使う（未コミット変更も含む）。`dbt` コマンドが PATH にあること（venv の `dbt` を推奨、[dbt-ci-setup.md](./dbt-ci-setup.md) と同じ 1.12 系）。
+`login` はブラウザまたは PAT。**`--selector lightdash`** は `dbt_project.yml` で定義した **marts のみ**（`raw_vault` に YAML カラムが無く `No dimensions available` になるのを避ける）。deploy は **手元の `profiles.yml`** を使う。
+
+| 接続先 | `--target` |
+|--------|------------|
+| ローカル `make supabase-reset` | `bi_reader_local`（`sslmode: disable`） |
+| 本番 session pooler | `bi_reader_hosted`（`pnpm lightdash-print-warehouse --print-yaml` で埋める） |
 
 dbt / `_marts.yml` を変えたあと本番 Lightdash を更新するたびに、同じ `deploy` を再実行する（Git の **Refresh** は CLI プロジェクトでは使わない）。
 
@@ -155,3 +167,7 @@ mise install   # または最初に失敗した aqua ツールを再 install
 ```
 
 別案: `brew install node` 経由で `npm i -g @lightdash/cli`、または毎回 `npx` のみ（グローバル不要）。
+| CLI 1.154.x とサーバ 3.350.1 の警告 | `@lightdash/cli` に **バージョンを付ける**（上記 `3.350.1`） |
+| dbt 1.13.0-b1 の警告 | [requirements-ci.txt](../../packages/dbt/requirements-ci.txt) の venv を有効化 |
+| `No dimensions available`（raw_vault など） | **`--selector lightdash`** または `--select path:models/marts`。全モデルを上げない |
+| `The server does not support SSL connections` | ローカル倉庫に **`--target bi_reader_local`**（SSL オフ）。`profiles.yml` の `target: ci` や `sslmode: require` をローカル deploy に使っていないか確認 |
