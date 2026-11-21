@@ -66,8 +66,8 @@ export function lightdashBiReaderProfilesYaml(conn: DbtPostgresConnection): stri
       password: ${q(conn.password)}
       port: ${conn.port}
       dbname: ${q(conn.dbname)}
-      sslmode: verify-full
-      sslrootcert: "{{ env_var('SUPABASE_DB_SSLROOTCERT') }}"
+      sslmode: require
+      sslrootcert: "/absolute/path/to/supabase-prod-ca.crt"
       schema: mart
       threads: 1
 `;
@@ -82,8 +82,9 @@ export function lightdashWarehouseSettings(conn: DbtPostgresConnection, opts?: {
     user: conn.user,
     password: opts?.includePassword ? conn.password : "<from Vault bi_reader_password>",
     dbname: conn.dbname,
-    sslmode: "verify-full",
-    sslRootCert: "SUPABASE_DB_SSLROOTCERT env → Dashboard → Database → SSL Configuration (download CA)",
+    sslmode: "require",
+    sslRootCert:
+      "Absolute path in profiles.yml (Lightdash CLI). Download: Dashboard → Database → SSL Configuration",
     schemas: [...BI_WAREHOUSE_SCHEMAS],
     searchPath: BI_WAREHOUSE_SCHEMAS.join(", "),
     sessionPoolerNote: "Use session pooler port 5432, not transaction pooler 6543.",

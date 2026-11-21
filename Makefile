@@ -107,6 +107,12 @@ lightdash-deploy-local:
 	  --target bi_reader_local \
 	  --selector lightdash
 
+lightdash-deploy-hosted:
+	cd packages/dbt && $(LIGHTDASH_CLI) deploy \
+	  --profiles-dir . --project-dir . \
+	  --target bi_reader_hosted \
+	  --selector lightdash
+
 demo-materialize-edge:
 	bash -lc 'set -a; [ -f .env ] && . ./.env; set +a; \
 	  test -n "$$SUPABASE_SECRET_KEY" || { echo "Missing SUPABASE_SECRET_KEY in .env (Dashboard secret key sb_secret_...)" >&2; exit 1; }; \

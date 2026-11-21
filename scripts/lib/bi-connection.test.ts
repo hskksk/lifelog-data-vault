@@ -38,8 +38,8 @@ assert.equal(payload.details["tunnel-enabled"], false);
 
 const yaml = lightdashBiReaderProfilesYaml(conn);
 assert.match(yaml, /target: bi_reader_hosted/);
-assert.match(yaml, /sslmode: verify-full/);
-assert.match(yaml, /SUPABASE_DB_SSLROOTCERT/);
+assert.match(yaml, /sslmode: require/);
+assert.match(yaml, /sslrootcert:/);
 assert.match(yaml, /user: "bi_reader\.abcdefghijklmnop"/);
 
 console.log("bi-connection.test.ts ok");

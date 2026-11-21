@@ -137,12 +137,18 @@ npx --yes @lightdash/cli@3.350.1 deploy --create \
 | ローカル `make supabase-reset` | `bi_reader_local`（`sslmode: disable`） |
 | 本番 session pooler | `bi_reader_hosted` + **`SUPABASE_DB_SSLROOTCERT`**（下記 SSL） |
 
-**Hosted の SSL（`self-signed certificate in certificate chain`）:** Supabase pooler は独自 CA 署名のため、`sslmode: require` だけだと Node / Lightdash が落ちることがある。
+**Hosted の SSL**
 
-1. Dashboard → **Database** → **SSL Configuration** で CA をダウンロード（例: `~/.postgresql/supabase-prod-ca.crt`）
-2. `export SUPABASE_DB_SSLROOTCERT=そのパス`
-3. CLI deploy: `--target bi_reader_hosted`（`verify-full` + `sslrootcert`）
-4. **Lightdash UI の Warehouse** だけ直す場合: SSL mode **`verify-full`**、**SSL root certificate** に同じ CA をアップロード。急ぎなら **`no-verify`**（暗号化はするが証明書チェック省略）
+| エラー | 原因と対処 |
+|--------|------------|
+| `self-signed certificate in certificate chain` | `sslrootcert` に Supabase CA の**絶対パス**を入れる（`require` + CA） |
+| `requires sslcert, sslkey and sslrootcert when sslmode is verify-full` | CLI は **`verify-full` だと client 証明書まで要求**する。プロファイルは **`sslmode: require` + `sslrootcert`**（Supabase は client cert 不要） |
+| `env_var('SUPABASE_DB_SSLROOTCERT')` なのに SSL エラー | Lightdash CLI は **Jinja を展開しない**ことがある。`profiles.yml` に **`sslrootcert: /Users/.../supabase-prod-ca.crt` のように直書き** |
+
+1. Dashboard → **Database** → **SSL Configuration** で CA をダウンロード
+2. `bi_reader_hosted.sslrootcert` にその絶対パス
+3. CLI deploy は **`--selector lightdash` 必須**（無いと raw_vault 23 件の `No dimensions available`）
+4. **Lightdash UI の Warehouse**: `verify-full` + CA アップロード、または急ぎ **`no-verify`**
 
 dbt / `_marts.yml` を変えたあと本番 Lightdash を更新するたびに、同じ `deploy` を再実行する（Git の **Refresh** は CLI プロジェクトでは使わない）。
 
@@ -178,4 +184,6 @@ mise install   # または最初に失敗した aqua ツールを再 install
 | dbt 1.13.0-b1 の警告 | [requirements-ci.txt](../../packages/dbt/requirements-ci.txt) の venv を有効化 |
 | `No dimensions available`（raw_vault など） | **`--selector lightdash`** または `--select path:models/marts`。全モデルを上げない |
 | `The server does not support SSL connections` | ローカル倉庫に **`--target bi_reader_local`**（SSL オフ）。`profiles.yml` の `target: ci` や `sslmode: require` をローカル deploy に使っていないか確認 |
-| `self-signed certificate in certificate chain`（hosted） | 上記 **Supabase CA + verify-full**。CLI は `SUPABASE_DB_SSLROOTCERT` と `bi_reader_hosted` |
+| `self-signed certificate in certificate chain`（hosted） | **`require` + `sslrootcert` 絶対パス**（CA は Dashboard から） |
+| 23 × `No dimensions available` on deploy | **`--selector lightdash`** を付ける |
+| `sslcert, sslkey and sslrootcert` + `verify-full` | `verify-full` をやめ **`require` + sslrootcert**（上表） |
