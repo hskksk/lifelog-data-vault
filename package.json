@@ -11,7 +11,8 @@
     "resolve-dbt-connection": "tsx scripts/resolve-dbt-connection.ts",
     "test:bi-connection": "tsx scripts/lib/bi-connection.test.ts && tsx scripts/lib/metabase-remote.test.ts",
     "metabase-connect-remote": "tsx scripts/metabase-add-remote.ts",
-    "lightdash-print-warehouse": "tsx scripts/lightdash-print-warehouse.ts"
+    "lightdash-print-warehouse": "tsx scripts/lightdash-print-warehouse.ts",
+    "verify-bi-reader-ssl": "tsx scripts/verify-bi-reader-ssl.ts"
   },
   "devDependencies": {
     "dotenv": "^16.4.7",

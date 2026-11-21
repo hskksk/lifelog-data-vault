@@ -145,10 +145,33 @@ npx --yes @lightdash/cli@3.350.1 deploy --create \
 | `requires sslcert, sslkey and sslrootcert when sslmode is verify-full` | CLI は **`verify-full` だと client 証明書まで要求**する。プロファイルは **`sslmode: require` + `sslrootcert`**（Supabase は client cert 不要） |
 | `env_var('SUPABASE_DB_SSLROOTCERT')` なのに SSL エラー | Lightdash CLI は **Jinja を展開しない**ことがある。`profiles.yml` に **`sslrootcert: /Users/.../supabase-prod-ca.crt` のように直書き** |
 
-1. Dashboard → **Database** → **SSL Configuration** で CA をダウンロード
-2. `bi_reader_hosted.sslrootcert` にその絶対パス
-3. CLI deploy は **`--selector lightdash` 必須**（無いと raw_vault 23 件の `No dimensions available`）
-4. **Lightdash UI の Warehouse**: `verify-full` + CA アップロード、または急ぎ **`no-verify`**
+1. Dashboard → **Database** → **SSL Configuration** で **Download certificate**（拡張子 `.crt` / `.cer` どちらでもよい）
+2. **PEM 変換は通常不要** — 中身が `-----BEGIN CERTIFICATE-----` ならそのまま使う（`.crt` と `.pem` は中身が同じ形式なら別名でしかない）
+3. DER のときだけ: `openssl x509 -inform DER -in 落としたファイル -out ~/.postgresql/supabase.pem`
+4. 確認: `pnpm verify-bi-reader-ssl`（CA の openssl 検証 + pooler の `s_client`）
+5. `bi_reader_hosted.sslrootcert` に **絶対パス**（`.pem` にリネームしてもよいが必須ではない）
+6. CLI deploy: **`NODE_EXTRA_CA_CERTS` に同じファイル** + **`--selector lightdash`**
+7. **Lightdash UI の Warehouse**: `verify-full` + CA アップロード、または **`no-verify`**
+
+```bash
+# CA が本当に読めるか（deploy 前）
+export SUPABASE_DB_SSLROOTCERT=~/.postgresql/supabase-prod-ca.crt
+pnpm verify-bi-reader-ssl
+
+openssl x509 -in "$SUPABASE_DB_SSLROOTCERT" -noout -subject   # 失敗したら DER 変換か再ダウンロード
+
+NODE_EXTRA_CA_CERTS="$SUPABASE_DB_SSLROOTCERT" \
+  npx --yes @lightdash/cli@3.350.1 deploy --create \
+  --profiles-dir . --project-dir . \
+  --target bi_reader_hosted --selector lightdash
+```
+
+**まだ `self-signed certificate in chain` のとき**
+
+- Dashboard から **別プロジェクト用**の CA を入れていないか確認
+- pooler ホスト（`aws-0-….pooler.supabase.com`）と profiles の `host` が一致しているか
+- Nix 等で `NIX_SSL_CERT_FILE` を使っている場合、**Supabase CA だけ**の `NODE_EXTRA_CA_CERTS` にして再試行（システム束と競合することがある）
+- deploy を通すだけなら **Lightdash UI** の warehouse を **`no-verify`** にし、CLI は **`lightdash login` 先の本番**向けに `deploy`（倉庫検証を UI 側に任せる）。あるいは一時的 `NODE_TLS_REJECT_UNAUTHORIZED=0`（非推奨・短命）
 
 dbt / `_marts.yml` を変えたあと本番 Lightdash を更新するたびに、同じ `deploy` を再実行する（Git の **Refresh** は CLI プロジェクトでは使わない）。
 
