@@ -107,11 +107,14 @@ lightdash-deploy-local:
 	  --target bi_reader_local \
 	  --selector lightdash
 
+# Hosted warehouse: profiles sslrootcert is for dbt (Python). Lightdash CLI (Node) needs NODE_EXTRA_CA_CERTS.
 lightdash-deploy-hosted:
-	cd packages/dbt && $(LIGHTDASH_CLI) deploy \
-	  --profiles-dir . --project-dir . \
-	  --target bi_reader_hosted \
-	  --selector lightdash
+	bash -lc 'test -n "$$SUPABASE_DB_SSLROOTCERT" && test -f "$$SUPABASE_DB_SSLROOTCERT" || { \
+	  echo "Set SUPABASE_DB_SSLROOTCERT to the Supabase CA file (Dashboard → Database → SSL Configuration)." >&2; exit 1; }; \
+	  cd packages/dbt && NODE_EXTRA_CA_CERTS="$$SUPABASE_DB_SSLROOTCERT" $(LIGHTDASH_CLI) deploy \
+	    --profiles-dir . --project-dir . \
+	    --target bi_reader_hosted \
+	    --selector lightdash "$$@"' -- $(filter-out $@,$(MAKECMDGOALS))
 
 demo-materialize-edge:
 	bash -lc 'set -a; [ -f .env ] && . ./.env; set +a; \

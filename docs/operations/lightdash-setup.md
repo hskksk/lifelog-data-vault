@@ -141,7 +141,7 @@ npx --yes @lightdash/cli@3.350.1 deploy --create \
 
 | エラー | 原因と対処 |
 |--------|------------|
-| `self-signed certificate in certificate chain` | `sslrootcert` に Supabase CA の**絶対パス**を入れる（`require` + CA） |
+| `self-signed certificate in certificate chain` | **二重設定:** (1) `profiles.yml` の `sslrootcert` 絶対パス（dbt） (2) **`export NODE_EXTRA_CA_CERTS=同じ CA`**（Lightdash CLI / Node）。`make lightdash-deploy-hosted` は後者を自動で付ける |
 | `requires sslcert, sslkey and sslrootcert when sslmode is verify-full` | CLI は **`verify-full` だと client 証明書まで要求**する。プロファイルは **`sslmode: require` + `sslrootcert`**（Supabase は client cert 不要） |
 | `env_var('SUPABASE_DB_SSLROOTCERT')` なのに SSL エラー | Lightdash CLI は **Jinja を展開しない**ことがある。`profiles.yml` に **`sslrootcert: /Users/.../supabase-prod-ca.crt` のように直書き** |
 
@@ -184,6 +184,6 @@ mise install   # または最初に失敗した aqua ツールを再 install
 | dbt 1.13.0-b1 の警告 | [requirements-ci.txt](../../packages/dbt/requirements-ci.txt) の venv を有効化 |
 | `No dimensions available`（raw_vault など） | **`--selector lightdash`** または `--select path:models/marts`。全モデルを上げない |
 | `The server does not support SSL connections` | ローカル倉庫に **`--target bi_reader_local`**（SSL オフ）。`profiles.yml` の `target: ci` や `sslmode: require` をローカル deploy に使っていないか確認 |
-| `self-signed certificate in certificate chain`（hosted） | **`require` + `sslrootcert` 絶対パス**（CA は Dashboard から） |
+| `self-signed certificate in certificate chain`（hosted） | `profiles` の CA **と** `NODE_EXTRA_CA_CERTS`（上表）。直 deploy 例: `NODE_EXTRA_CA_CERTS=$SUPABASE_DB_SSLROOTCERT npx ... deploy ...` |
 | 23 × `No dimensions available` on deploy | **`--selector lightdash`** を付ける |
 | `sslcert, sslkey and sslrootcert` + `verify-full` | `verify-full` をやめ **`require` + sslrootcert**（上表） |

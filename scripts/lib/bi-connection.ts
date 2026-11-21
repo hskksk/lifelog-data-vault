@@ -88,7 +88,7 @@ export function lightdashWarehouseSettings(conn: DbtPostgresConnection, opts?: {
     schemas: [...BI_WAREHOUSE_SCHEMAS],
     searchPath: BI_WAREHOUSE_SCHEMAS.join(", "),
     sessionPoolerNote: "Use session pooler port 5432, not transaction pooler 6543.",
-    lightdashWarehouseSslNote:
-      "If self-signed certificate in certificate chain: verify-full + CA file, or SSL mode no-verify in the UI (encrypted, no cert check).",
+    lightdashCliSslNote:
+      "CLI deploy: profiles sslrootcert (dbt) + NODE_EXTRA_CA_CERTS=<same CA path> for Node. UI warehouse: verify-full + CA upload or no-verify.",
   };
 }
