@@ -54,19 +54,20 @@ export function metabaseRemoteDatabasePayload(conn: DbtPostgresConnection) {
 
 const q = (value: string) => JSON.stringify(value);
 
-/** dbt profiles fragment for Lightdash warehouse settings (bi_reader target). */
+/** dbt profiles fragment for Lightdash CLI deploy to hosted Supabase (bi_reader_hosted target). */
 export function lightdashBiReaderProfilesYaml(conn: DbtPostgresConnection): string {
   return `lifelog_vault:
-  target: bi_reader
+  target: bi_reader_hosted
   outputs:
-    bi_reader:
+    bi_reader_hosted:
       type: postgres
       host: ${q(conn.host)}
       user: ${q(conn.user)}
       password: ${q(conn.password)}
       port: ${conn.port}
       dbname: ${q(conn.dbname)}
-      sslmode: ${q(conn.sslmode)}
+      sslmode: verify-full
+      sslrootcert: "{{ env_var('SUPABASE_DB_SSLROOTCERT') }}"
       schema: mart
       threads: 1
 `;
@@ -81,9 +82,12 @@ export function lightdashWarehouseSettings(conn: DbtPostgresConnection, opts?: {
     user: conn.user,
     password: opts?.includePassword ? conn.password : "<from Vault bi_reader_password>",
     dbname: conn.dbname,
-    sslmode: conn.sslmode,
+    sslmode: "verify-full",
+    sslRootCert: "SUPABASE_DB_SSLROOTCERT env → Dashboard → Database → SSL Configuration (download CA)",
     schemas: [...BI_WAREHOUSE_SCHEMAS],
     searchPath: BI_WAREHOUSE_SCHEMAS.join(", "),
     sessionPoolerNote: "Use session pooler port 5432, not transaction pooler 6543.",
+    lightdashWarehouseSslNote:
+      "If self-signed certificate in certificate chain: verify-full + CA file, or SSL mode no-verify in the UI (encrypted, no cert check).",
   };
 }

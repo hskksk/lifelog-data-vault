@@ -14,6 +14,8 @@ packages/dbt/target/
 packages/dbt/dbt_packages/
 packages/dbt/logs/
 packages/dbt/profiles.yml
+packages/dbt/*.crt
+packages/dbt/*.cer
 .DS_Store
 deploy/macos/lifelog-macos-collect
 *.log

@@ -63,7 +63,9 @@ lifelog_vault:
       schema: mart
       threads: 1
       sslmode: disable
-    # Hosted session pooler (paste from: pnpm lightdash-print-warehouse --print-yaml)
+    # Hosted session pooler. Download CA: Dashboard → Database → SSL Configuration.
+    # export SUPABASE_DB_SSLROOTCERT="$HOME/.postgresql/supabase-prod-ca.crt"
+    # require alone often fails in Node/Lightdash with "self-signed certificate in certificate chain".
     bi_reader_hosted:
       type: postgres
       host: REPLACE_ME.pooler.supabase.com
@@ -71,6 +73,7 @@ lifelog_vault:
       password: REPLACE_ME
       port: 5432
       dbname: postgres
-      sslmode: require
+      sslmode: verify-full
+      sslrootcert: "{{ env_var('SUPABASE_DB_SSLROOTCERT') }}"
       schema: mart
       threads: 1
