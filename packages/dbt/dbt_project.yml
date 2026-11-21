@@ -31,13 +31,6 @@ models:
       +post_hook:
         - "{{ grant_mart_to_bi_reader() }}"
 
-selectors:
-  - name: lightdash
-    description: Marts only for Lightdash (raw_vault has no column YAML).
-    definition:
-      method: path
-      value: models/marts
-
 vars:
   batch_id: null
   # Business vault and marts drop these person ids. Raw vault keeps the history.
