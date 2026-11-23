@@ -63,9 +63,8 @@ lifelog_vault:
       schema: mart
       threads: 1
       sslmode: disable
-    # Hosted session pooler. Dashboard → Database → SSL Configuration → download CA.
-    # Lightdash CLI does not expand env_var() before SSL checks: use a literal path here.
-    # (dbt-only runs can keep env_var — see comments in lightdash-setup.md.)
+    # Hosted session pooler — local production: make lightdash-install-ca then use this path.
+    # Lightdash CLI needs a literal path (no env_var). Host/user/password from: pnpm lightdash-print-warehouse
     bi_reader_hosted:
       type: postgres
       host: REPLACE_ME.pooler.supabase.com
@@ -74,6 +73,6 @@ lifelog_vault:
       port: 5432
       dbname: postgres
       sslmode: require
-      sslrootcert: /absolute/path/to/supabase-prod-ca.crt
+      sslrootcert: /absolute/path/to/lifelog-data-vault/deploy/docker/lightdash/certs/supabase-ca.pem
       schema: mart
       threads: 1

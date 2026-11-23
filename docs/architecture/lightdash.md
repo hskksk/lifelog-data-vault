@@ -2,7 +2,7 @@
 
 関連: [supabase-runtime.md](./supabase-runtime.md), [metabase.md](./metabase.md), [overview.md](./overview.md)
 
-手順: [../operations/lightdash-setup.md](../operations/lightdash-setup.md)
+手順: [../operations/lightdash-setup.md](../operations/lightdash-setup.md)（**ローカル本番・単独利用**は [lightdash-local-production.md](../operations/lightdash-local-production.md)）
 
 ---
 

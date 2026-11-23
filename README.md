@@ -99,14 +99,17 @@ In Metabase, connect to `host.docker.internal:54422`, database `postgres`, user 
 
 ### Lightdash (dbt BI)
 
-Design: [docs/architecture/lightdash.md](docs/architecture/lightdash.md). Setup: [docs/operations/lightdash-setup.md](docs/operations/lightdash-setup.md).
+Design: [docs/architecture/lightdash.md](docs/architecture/lightdash.md).  
+**Local production (solo use, hosted warehouse + CA):** [docs/operations/lightdash-local-production.md](docs/operations/lightdash-local-production.md).
 
 ```bash
-cp packages/dbt/profiles.yml.example packages/dbt/profiles.yml   # includes bi_reader target
-make lightdash-up   # http://127.0.0.1:8081
+export SUPABASE_DB_SSLROOTCERT=~/path/to/dashboard-ca.crt
+make lightdash-install-ca
+make lightdash-prod-up    # http://127.0.0.1:8081
 ```
 
-Point the Lightdash warehouse at `host.docker.internal:54422`, user `bi_reader`, password `local-bi-reader`, dbt path `/usr/app/dbt`, target `bi_reader`. For hosted Supabase, `make lightdash-print-warehouse` prints session-pooler settings (same Vault secret as Metabase).
+Warehouse UI: hosted session pooler + `bi_reader.<ref>`, SSL **verify-full** + upload `deploy/docker/lightdash/certs/supabase-ca.pem`. Deploy: `make lightdash-prod-deploy` (`CREATE=1` first time).  
+Local Supabase warehouse only: `make lightdash-up` + `host.docker.internal:54422` / `bi_reader_local` ([lightdash-setup.md](docs/operations/lightdash-setup.md)).
 
 ### Legacy Docker Postgres
 

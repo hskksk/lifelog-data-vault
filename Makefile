@@ -5,8 +5,10 @@ SUPABASE_START_EXCLUDE ?= logflare,vector,realtime
 
 COMPOSE_METABASE = docker compose -f deploy/docker/docker-compose.metabase.yml
 COMPOSE_LIGHTDASH = docker compose -f deploy/docker/docker-compose.lightdash.yml
+COMPOSE_LIGHTDASH_PROD = docker compose -f deploy/docker/docker-compose.lightdash.yml --env-file deploy/docker/lightdash/hosted-warehouse.env
+LIGHTDASH_CA = deploy/docker/lightdash/certs/supabase-ca.pem
 
-.PHONY: up down migrate ingest-core-build supabase-start supabase-stop supabase-reset supabase-functions-serve dbt-parse dbt-owntracks dbt lint test demo-owntracks demo-owntracks-edge demo-materialize-edge metabase-up metabase-down metabase-reset metabase-logs metabase-connect-remote lightdash-up lightdash-down lightdash-reset lightdash-logs lightdash-print-warehouse lightdash-deploy-local
+.PHONY: up down migrate ingest-core-build supabase-start supabase-stop supabase-reset supabase-functions-serve dbt-parse dbt-owntracks dbt lint test demo-owntracks demo-owntracks-edge demo-materialize-edge metabase-up metabase-down metabase-reset metabase-logs metabase-connect-remote lightdash-up lightdash-down lightdash-reset lightdash-logs lightdash-print-warehouse lightdash-deploy-local lightdash-install-ca lightdash-prod-up lightdash-prod-down lightdash-prod-deploy
 
 up:
 	$(COMPOSE) up -d
@@ -82,11 +84,27 @@ metabase-logs:
 metabase-connect-remote:
 	pnpm metabase-connect-remote
 
+# Lightdash on 127.0.0.1 + local Supabase warehouse (no pooler CA).
 lightdash-up:
 	$(COMPOSE_LIGHTDASH) up -d
 
 lightdash-down:
 	$(COMPOSE_LIGHTDASH) down
+
+# Copy Dashboard CA into deploy/docker/lightdash/certs/supabase-ca.pem (gitignored).
+lightdash-install-ca:
+	@test -n "$$SUPABASE_DB_SSLROOTCERT" && test -f "$$SUPABASE_DB_SSLROOTCERT" || { \
+	  echo "Set SUPABASE_DB_SSLROOTCERT to the Supabase SSL Configuration download path." >&2; exit 1; }
+	install -d deploy/docker/lightdash/certs
+	install -m 0644 "$$SUPABASE_DB_SSLROOTCERT" "$(LIGHTDASH_CA)"
+
+# Local-only “production”: Lightdash on 127.0.0.1, warehouse = hosted Supabase, NODE_EXTRA_CA_CERTS set.
+lightdash-prod-up:
+	@test -f "$(LIGHTDASH_CA)" || $(MAKE) lightdash-install-ca
+	$(COMPOSE_LIGHTDASH_PROD) up -d
+
+lightdash-prod-down:
+	$(COMPOSE_LIGHTDASH_PROD) down
 
 # Deletes the local app database (Lightdash org, users, saved charts).
 lightdash-reset:
@@ -107,14 +125,17 @@ lightdash-deploy-local:
 	  --target bi_reader_local \
 	  --selector lightdash
 
-# Hosted warehouse: profiles sslrootcert is for dbt (Python). Lightdash CLI (Node) needs NODE_EXTRA_CA_CERTS.
-lightdash-deploy-hosted:
-	bash -lc 'test -n "$$SUPABASE_DB_SSLROOTCERT" && test -f "$$SUPABASE_DB_SSLROOTCERT" || { \
-	  echo "Set SUPABASE_DB_SSLROOTCERT to the Supabase CA file (Dashboard → Database → SSL Configuration)." >&2; exit 1; }; \
-	  cd packages/dbt && NODE_EXTRA_CA_CERTS="$$SUPABASE_DB_SSLROOTCERT" $(LIGHTDASH_CLI) deploy \
+# Hosted warehouse deploy (use repo CA path). CREATE=1 for first project.
+lightdash-prod-deploy:
+	bash -lc 'test -f "$(LIGHTDASH_CA)" || { echo "Run make lightdash-install-ca first." >&2; exit 1; }; \
+	  CA="$$(pwd)/$(LIGHTDASH_CA)"; \
+	  cd packages/dbt && NODE_EXTRA_CA_CERTS="$$CA" $(LIGHTDASH_CLI) deploy \
+	    $$(test "$${CREATE:-0}" = "1" && echo --create) \
 	    --profiles-dir . --project-dir . \
 	    --target bi_reader_hosted \
 	    --selector lightdash'
+
+lightdash-deploy-hosted: lightdash-prod-deploy
 
 demo-materialize-edge:
 	bash -lc 'set -a; [ -f .env ] && . ./.env; set +a; \

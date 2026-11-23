@@ -1,4 +1,5 @@
-# Local Lightdash only. Warehouse is Supabase Postgres (bi_reader); app DB is separate.
+# Lightdash on 127.0.0.1 only. App DB is separate from the warehouse (Supabase bi_reader).
+# Local production (hosted warehouse): make lightdash-prod-up — see docs/operations/lightdash-local-production.md
 #
 # Mounts packages/dbt at /usr/app/dbt (read-only). Copy profiles.yml from profiles.yml.example
 # with target bi_reader before compiling in the UI.
