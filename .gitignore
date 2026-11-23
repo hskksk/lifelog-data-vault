@@ -18,6 +18,7 @@ packages/dbt/*.crt
 packages/dbt/*.cer
 deploy/docker/lightdash/certs/*
 !deploy/docker/lightdash/certs/.gitkeep
+!deploy/docker/lightdash/certs/README.md
 .DS_Store
 deploy/macos/lifelog-macos-collect
 *.log
