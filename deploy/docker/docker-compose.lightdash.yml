@@ -1,0 +1,105 @@
+# Lightdash on 127.0.0.1 only. App DB is separate from the warehouse (Supabase bi_reader).
+# Local production (hosted warehouse): make lightdash-prod-up — see docs/operations/lightdash-local-production.md
+#
+# Mounts packages/dbt at /usr/app/dbt (read-only). Copy profiles.yml from profiles.yml.example
+# with target bi_reader before compiling in the UI.
+# See docs/operations/lightdash-setup.md.
+#
+# lightdash/lightdash publishes linux/amd64 only. On Apple Silicon, Docker runs it
+# under emulation (Docker Desktop: Settings → General → “Use Rosetta for … amd64”).
+
+name: lifelog-lightdash
+
+services:
+  lightdash-db:
+    image: pgvector/pgvector:pg16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: lightdash
+      POSTGRES_PASSWORD: ${LIGHTDASH_APP_DB_PASSWORD:-lightdash}
+      POSTGRES_DB: lightdash
+    volumes:
+      - lightdash_db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U lightdash -d lightdash"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  minio:
+    image: coollabsio/minio:latest
+    restart: unless-stopped
+    volumes:
+      - ./lightdash/init-minio.sh:/init-minio.sh
+    entrypoint: /init-minio.sh
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+      MINIO_DEFAULT_BUCKETS: default
+      MINIO_EXPIRATION_DAYS: "1"
+
+  headless-browser:
+    platform: linux/amd64
+    image: browserless/chrome:1.61-chrome-stable
+    restart: unless-stopped
+    environment:
+      TIMEOUT: "300000"
+      MAX_CONCURRENT_SESSIONS: "2"
+
+  lightdash:
+    platform: linux/amd64
+    image: lightdash/lightdash:3.350.1
+    restart: unless-stopped
+    depends_on:
+      lightdash-db:
+        condition: service_healthy
+      minio:
+        condition: service_started
+    ports:
+      - "127.0.0.1:${LIGHTDASH_PORT:-8081}:8080"
+    volumes:
+      - ../../packages/dbt:/usr/app/dbt:ro
+      # Optional hosted Supabase warehouse: copy CA to deploy/docker/lightdash/certs/supabase-ca.pem
+      # and set LIGHTDASH_WAREHOUSE_CA=1 in .env (see lightdash-setup.md).
+      - ./lightdash/certs:/certs:ro
+    environment:
+      PGHOST: lightdash-db
+      PGPORT: "5432"
+      PGUSER: lightdash
+      PGPASSWORD: ${LIGHTDASH_APP_DB_PASSWORD:-lightdash}
+      PGDATABASE: lightdash
+      # Changing LIGHTDASH_SECRET after first start locks encrypted rows; use lightdash-reset to wipe.
+      LIGHTDASH_SECRET: ${LIGHTDASH_SECRET:-local-dev-lightdash-secret-not-for-production}
+      PORT: "8080"
+      SITE_URL: http://127.0.0.1:${LIGHTDASH_PORT:-8081}
+      SECURE_COOKIES: "false"
+      TRUST_PROXY: "false"
+      LIGHTDASH_INSTALL_TYPE: docker_image
+      LIGHTDASH_MIGRATION_EXECUTION_MODE: compose
+      TZ: Asia/Tokyo
+      S3_ENDPOINT: http://minio:9000
+      S3_REGION: us-east-1
+      S3_BUCKET: default
+      S3_ACCESS_KEY: minioadmin
+      S3_SECRET_KEY: minioadmin
+      S3_FORCE_PATH_STYLE: "true"
+      HEADLESS_BROWSER_HOST: headless-browser
+      HEADLESS_BROWSER_PORT: "3000"
+      SCHEDULER_ENABLED: "false"
+      HEADWAY_ENABLED: "false"
+      RUDDERSTACK_ANALYTICS_DISABLED: "true"
+      AI_COPILOT_ENABLED: "false"
+      # Hosted warehouse (make lightdash-prod-up): hosted-warehouse.env sets NODE_TLS_REJECT_UNAUTHORIZED=0.
+      NODE_TLS_REJECT_UNAUTHORIZED: ${NODE_TLS_REJECT_UNAUTHORIZED:-}
+      NODE_EXTRA_CA_CERTS: ${NODE_EXTRA_CA_CERTS:-}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "-I", "http://127.0.0.1:8080/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 30
+      start_period: 180s
+
+volumes:
+  lightdash_db_data:

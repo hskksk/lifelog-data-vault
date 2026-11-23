@@ -12,7 +12,7 @@ Personal lifelog data platform using **Data Vault 2.0** patterns: Bronze object 
 | Transform | dbt Core (outside Supabase) |
 | Ingest (prod) | Supabase Edge Functions |
 | Ingest (local dev) | TypeScript `@lifelog/ingest` Hono server |
-| BI | Metabase, read-only `bi_reader` on schema `mart` |
+| BI | Metabase (explore / maps) + Lightdash (dbt metrics); read-only `bi_reader` on `mart`, `business_vault`, `raw_vault` |
 | CI | GitHub Actions |
 
 ## Quick start (local Supabase)
@@ -96,6 +96,18 @@ make metabase-up   # http://127.0.0.1:3000
 ```
 
 In Metabase, connect to `host.docker.internal:54422`, database `postgres`, user `bi_reader`, schemas `mart`, `business_vault`, and `raw_vault`. To add the hosted database on that same Metabase, set `SUPABASE_DB_PASSWORD`, `SUPABASE_PROJECT_REF`, and `METABASE_EMAIL` / `METABASE_PASSWORD` (or `METABASE_API_KEY`), then `make metabase-connect-remote`. That uses the session pooler as `bi_reader.<project-ref>` (Vault `bi_reader_password`; seed does not run on prod).
+
+### Lightdash (dbt BI)
+
+Design: [docs/architecture/lightdash.md](docs/architecture/lightdash.md).  
+**Local production (solo use, hosted warehouse + CA):** [docs/operations/lightdash-local-production.md](docs/operations/lightdash-local-production.md).
+
+```bash
+make lightdash-prod-up    # http://127.0.0.1:8081 — NODE_TLS_REJECT_UNAUTHORIZED=0 in hosted-warehouse.env
+```
+
+Warehouse UI: hosted session pooler + `bi_reader.<ref>`, SSL **`no-verify`**. Deploy: `CREATE=1 make lightdash-prod-deploy` then `make lightdash-prod-deploy`.  
+Local Supabase warehouse only: `make lightdash-up` + `host.docker.internal:54422` / `bi_reader_local` ([lightdash-setup.md](docs/operations/lightdash-setup.md)).
 
 ### Legacy Docker Postgres
 

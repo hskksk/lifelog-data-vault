@@ -4,8 +4,11 @@ SUPABASE ?= npx --yes supabase@2.122.0
 SUPABASE_START_EXCLUDE ?= logflare,vector,realtime
 
 COMPOSE_METABASE = docker compose -f deploy/docker/docker-compose.metabase.yml
+COMPOSE_LIGHTDASH = docker compose -f deploy/docker/docker-compose.lightdash.yml
+COMPOSE_LIGHTDASH_PROD = docker compose -f deploy/docker/docker-compose.lightdash.yml --env-file deploy/docker/lightdash/hosted-warehouse.env
+LIGHTDASH_CA = deploy/docker/lightdash/certs/supabase-ca.pem
 
-.PHONY: up down migrate ingest-core-build supabase-start supabase-stop supabase-reset supabase-functions-serve dbt-parse dbt-owntracks dbt lint test demo-owntracks demo-owntracks-edge demo-materialize-edge metabase-up metabase-down metabase-reset metabase-logs metabase-connect-remote
+.PHONY: up down migrate ingest-core-build supabase-start supabase-stop supabase-reset supabase-functions-serve dbt-parse dbt-owntracks dbt lint test demo-owntracks demo-owntracks-edge demo-materialize-edge metabase-up metabase-down metabase-reset metabase-logs metabase-connect-remote lightdash-up lightdash-down lightdash-reset lightdash-logs lightdash-print-warehouse lightdash-deploy-local lightdash-install-ca lightdash-prod-up lightdash-prod-down lightdash-prod-deploy
 
 up:
 	$(COMPOSE) up -d
@@ -80,6 +83,56 @@ metabase-logs:
 
 metabase-connect-remote:
 	pnpm metabase-connect-remote
+
+# Lightdash on 127.0.0.1 + local Supabase warehouse (no pooler CA).
+lightdash-up:
+	$(COMPOSE_LIGHTDASH) up -d
+
+lightdash-down:
+	$(COMPOSE_LIGHTDASH) down
+
+# Copy Dashboard CA into deploy/docker/lightdash/certs/supabase-ca.pem (gitignored).
+lightdash-install-ca:
+	@test -n "$$SUPABASE_DB_SSLROOTCERT" && test -f "$$SUPABASE_DB_SSLROOTCERT" || { \
+	  echo "Set SUPABASE_DB_SSLROOTCERT to the Supabase SSL Configuration download path." >&2; exit 1; }
+	install -d deploy/docker/lightdash/certs
+	install -m 0644 "$$SUPABASE_DB_SSLROOTCERT" "$(LIGHTDASH_CA)"
+
+# Local-only “production”: Lightdash on 127.0.0.1, warehouse = hosted Supabase (TLS verify off in hosted-warehouse.env).
+lightdash-prod-up:
+	$(COMPOSE_LIGHTDASH_PROD) up -d
+
+lightdash-prod-down:
+	$(COMPOSE_LIGHTDASH_PROD) down
+
+# Deletes the local app database (Lightdash org, users, saved charts).
+lightdash-reset:
+	$(COMPOSE_LIGHTDASH) down -v
+	$(COMPOSE_LIGHTDASH) up -d
+
+lightdash-logs:
+	$(COMPOSE_LIGHTDASH) logs -f lightdash
+
+lightdash-print-warehouse:
+	pnpm lightdash-print-warehouse
+
+# CLI deploy to local Lightdash (http://127.0.0.1:8081). Run lightdash login once first.
+LIGHTDASH_CLI ?= npx --yes @lightdash/cli@3.350.1
+lightdash-deploy-local:
+	cd packages/dbt && $(LIGHTDASH_CLI) deploy \
+	  --profiles-dir . --project-dir . \
+	  --target bi_reader_local \
+	  --selector lightdash
+
+# Hosted warehouse deploy. CREATE=1 for first project. Matches lightdash-prod-up TLS (no cert verify).
+lightdash-prod-deploy:
+	bash -lc 'cd packages/dbt && NODE_TLS_REJECT_UNAUTHORIZED=0 $(LIGHTDASH_CLI) deploy \
+	    $$(test "$${CREATE:-0}" = "1" && echo --create) \
+	    --profiles-dir . --project-dir . \
+	    --target bi_reader_hosted \
+	    --selector lightdash'
+
+lightdash-deploy-hosted: lightdash-prod-deploy
 
 demo-materialize-edge:
 	bash -lc 'set -a; [ -f .env ] && . ./.env; set +a; \

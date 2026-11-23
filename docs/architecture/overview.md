@@ -25,7 +25,7 @@ Ingest personal lifelog data (health, PC activity, manual metrics), store immuta
 Sources → Edge ingest → Storage Bronze + ops.ingest_batch
 Cron → Edge materialize → staging inbox
 GitHub Actions → dbt → raw_vault → business_vault → mart
-Metabase (bi_reader, session pooler) → mart, business_vault, raw_vault
+Metabase / Lightdash (bi_reader, session pooler) → mart, business_vault, raw_vault
 GitHub → CI (ingest typecheck, dbt parse)
 ```
 
