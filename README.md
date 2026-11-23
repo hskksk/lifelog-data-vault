@@ -103,12 +103,10 @@ Design: [docs/architecture/lightdash.md](docs/architecture/lightdash.md).
 **Local production (solo use, hosted warehouse + CA):** [docs/operations/lightdash-local-production.md](docs/operations/lightdash-local-production.md).
 
 ```bash
-export SUPABASE_DB_SSLROOTCERT=~/path/to/dashboard-ca.crt
-make lightdash-install-ca
-make lightdash-prod-up    # http://127.0.0.1:8081
+make lightdash-prod-up    # http://127.0.0.1:8081 — NODE_TLS_REJECT_UNAUTHORIZED=0 in hosted-warehouse.env
 ```
 
-Warehouse UI: hosted session pooler + `bi_reader.<ref>`, SSL **verify-full** + upload `deploy/docker/lightdash/certs/supabase-ca.pem`. Deploy: `make lightdash-prod-deploy` (`CREATE=1` first time).  
+Warehouse UI: hosted session pooler + `bi_reader.<ref>`, SSL **`no-verify`**. Deploy: `CREATE=1 make lightdash-prod-deploy` then `make lightdash-prod-deploy`.  
 Local Supabase warehouse only: `make lightdash-up` + `host.docker.internal:54422` / `bi_reader_local` ([lightdash-setup.md](docs/operations/lightdash-setup.md)).
 
 ### Legacy Docker Postgres

@@ -98,9 +98,8 @@ lightdash-install-ca:
 	install -d deploy/docker/lightdash/certs
 	install -m 0644 "$$SUPABASE_DB_SSLROOTCERT" "$(LIGHTDASH_CA)"
 
-# Local-only “production”: Lightdash on 127.0.0.1, warehouse = hosted Supabase, NODE_EXTRA_CA_CERTS set.
+# Local-only “production”: Lightdash on 127.0.0.1, warehouse = hosted Supabase (TLS verify off in hosted-warehouse.env).
 lightdash-prod-up:
-	@test -f "$(LIGHTDASH_CA)" || $(MAKE) lightdash-install-ca
 	$(COMPOSE_LIGHTDASH_PROD) up -d
 
 lightdash-prod-down:
@@ -125,11 +124,9 @@ lightdash-deploy-local:
 	  --target bi_reader_local \
 	  --selector lightdash
 
-# Hosted warehouse deploy (use repo CA path). CREATE=1 for first project.
+# Hosted warehouse deploy. CREATE=1 for first project. Matches lightdash-prod-up TLS (no cert verify).
 lightdash-prod-deploy:
-	bash -lc 'test -f "$(LIGHTDASH_CA)" || { echo "Run make lightdash-install-ca first." >&2; exit 1; }; \
-	  CA="$$(pwd)/$(LIGHTDASH_CA)"; \
-	  cd packages/dbt && NODE_EXTRA_CA_CERTS="$$CA" $(LIGHTDASH_CLI) deploy \
+	bash -lc 'cd packages/dbt && NODE_TLS_REJECT_UNAUTHORIZED=0 $(LIGHTDASH_CLI) deploy \
 	    $$(test "$${CREATE:-0}" = "1" && echo --create) \
 	    --profiles-dir . --project-dir . \
 	    --target bi_reader_hosted \

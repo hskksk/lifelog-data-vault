@@ -120,6 +120,8 @@ Lightdash サーバー側に GitHub App を置かなくてよい。dbt write-bac
 
 Network restrictions がある場合は Lightdash ホスト IP を許可する。
 
+**ローカル単独本番**（`make lightdash-prod-up`）は [lightdash-local-production.md](./lightdash-local-production.md) のとおり **`NODE_TLS_REJECT_UNAUTHORIZED=0`** で CA を省略する。以下は厳格検証に切り替えるとき用。
+
 ### 2.3 本番 SSL の適用（3 か所）
 
 Supabase pooler 用 CA は **Dashboard → Database → SSL Configuration → Download** で 1 回取得する（拡張子 `.crt` / `.cer` でよい。中身が `-----BEGIN CERTIFICATE-----` ならそのまま PEM）。**本番サーバーにコピー**し、git には入れない。

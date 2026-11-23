@@ -89,8 +89,8 @@ services:
       HEADWAY_ENABLED: "false"
       RUDDERSTACK_ANALYTICS_DISABLED: "true"
       AI_COPILOT_ENABLED: "false"
-      # Chart/query TLS to a hosted Supabase warehouse (not your laptop's deploy-time NODE_TLS_*).
-      # Set NODE_EXTRA_CA_CERTS=/certs/supabase-ca.pem in .env when that file exists under lightdash/certs/.
+      # Hosted warehouse (make lightdash-prod-up): hosted-warehouse.env sets NODE_TLS_REJECT_UNAUTHORIZED=0.
+      NODE_TLS_REJECT_UNAUTHORIZED: ${NODE_TLS_REJECT_UNAUTHORIZED:-}
       NODE_EXTRA_CA_CERTS: ${NODE_EXTRA_CA_CERTS:-}
     extra_hosts:
       - "host.docker.internal:host-gateway"
