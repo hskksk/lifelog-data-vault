@@ -19,7 +19,7 @@
     "h3-js": "^4.1.0"
   },
   "devDependencies": {
-    "@types/node": "^22.13.0",
+    "@types/node": "^26.6.6",
     "tsup": "^8.4.0",
     "typescript": "^5.8.0",
     "vitest": "^3.0.0"
