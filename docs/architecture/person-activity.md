@@ -71,7 +71,7 @@ business vault もマートも `materialized='table'` にし、実行のたび�
 | 除外する場所 | `bv_location_fix`、`bv_app_usage_interval`、`bv_power_interval`。`hub_person.person_bk` で判定する。`bv_location_segment` と `mart_person_activity_minute` はその結果を引き継ぐ |
 | 検証 | 各 bv モデルの `person_id` に付けた `not_retired_person_id` テスト |
 
-`mart_location_trail` は `sat_owntracks_location` をそのまま出す view で、person_id を持たない。この除外の対象外である。
+`mart_location_trail` は `sat_owntracks_location` の **location_event_hk ごとに最新 load_dts の 1 行**（`bv_location_fix` と同じルール）を出す view で、person_id を持たない。この除外の対象外である。
 
 OwnTracks の person_id は topic の user なので、過去の `owntracks/me/...` の位置は business vault から消える。Mac の区間は、移行後にできた `hskksk` のリンク（machine / OS account）が履歴にも効くため残る。有効にする前に `raw_vault.sat_owntracks_location` の `person_id` と `tst`、`raw_vault.link_person_machine` を確認する。送信側がまだ `me` のままだと、今後の位置も消える。
 
@@ -79,7 +79,7 @@ OwnTracks の person_id は topic の user なので、過去の `owntracks/me/.
 
 ### 3.1 実測と推定を分ける
 
-`mart_location_trail` は、従来どおり `sat_owntracks_location` の実測だけを出す。補間点をここに足すと、地図が、計測していない点を fix として描いてしまう。
+`mart_location_trail` は、実測 fix の最新版だけを出す（satellite の hashdiff 履歴は raw vault のみ）。補間点をここに足すと、地図が、計測していない点を fix として描いてしまう。
 
 推定を持つのは、`bv_location_segment` と、それを分ごとに計算したマートの列だけである。
 
