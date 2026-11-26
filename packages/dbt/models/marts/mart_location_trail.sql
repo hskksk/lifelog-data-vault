@@ -4,7 +4,8 @@
     tags=['owntracks'],
 ) }}
 
-select
+-- One row per location_event_hk: latest satellite version (same rule as bv_location_fix).
+select distinct on (location_event_hk)
   location_event_hk,
   lat,
   lon,
@@ -20,3 +21,4 @@ select
   load_dts,
   record_source
 from {{ ref('sat_owntracks_location') }}
+order by location_event_hk, load_dts desc

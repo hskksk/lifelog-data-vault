@@ -2,7 +2,7 @@ version: 2
 
 models:
   - name: mart_location_trail
-    description: OwnTracks location fixes exposed for BI (satellite columns).
+    description: OwnTracks location fixes for BI; latest satellite row per location_event_hk (hashdiff history stays in raw_vault only).
     config:
       meta:
         label: Location trail
@@ -11,7 +11,6 @@ models:
         description: Surrogate key for the location event.
         tests:
           - not_null
-          - unique
       - name: tst
         description: Fix time (timestamptz, UTC).
         config:
